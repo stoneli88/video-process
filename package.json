@@ -1,0 +1,32 @@
+{
+    "name": "video-express",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "dependencies": {
+        "apollo-link": "^1.2.2",
+        "apollo-link-http": "^1.5.4",
+        "apollo-server-express": "^2.0.0",
+        "bee-queue": "^1.2.2",
+        "body-parser": "~1.18.3",
+        "cors": "^2.8.4",
+        "express": "~4.16.3",
+        "fluent-ffmpeg": "^2.1.2",
+        "graphql": "^0.13.2",
+        "graphql-tag": "^2.9.2",
+        "mkdirp": "~0.5.1",
+        "multiparty": "~4.1.4",
+        "node-fetch": "^2.2.0",
+        "prisma-binding": "^2.1.1",
+        "rimraf": "~2.6.2",
+        "rsync": "^0.6.1"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "mocha": "^5.2.0"
+    }
+}
