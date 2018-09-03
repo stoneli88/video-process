@@ -25,9 +25,8 @@ const onGetVideoPlayAddress = (exports.onGetVideoPlayAddress = async (req, res) 
 		}
 		if (job.status === 'succeeded') {
 			const name = job.data.video_name;
-			const size = job.data.video_size;
 			const mp4info = spawn(`${process.cwd()}/bin/mp4info`, [
-				`${process.cwd()}/output/${uuid}/${name}_${size}.mp4`
+				`${process.cwd()}/output/${uuid}/${name}_640x360.mp4`
 			]);
 			const grep = spawn('grep', [ 'Codec' ]);
 			mp4info.stderr.on('data', (data) => {
@@ -41,8 +40,7 @@ const onGetVideoPlayAddress = (exports.onGetVideoPlayAddress = async (req, res) 
 				res.send({
 					success: true,
 					video: {
-						url: `${CONFIG.VIDEO_SERVER}/${uuid}/${name}_${size}_dashinit.mp4`,
-						xml: `${CONFIG.VIDEO_SERVER}/${uuid}/${name}_${size}.xml`,
+						xml: `${CONFIG.VIDEO_SERVER}/${uuid}/manifest.xml`,
 						mp4info: data
 							.toString()
 							.replace(/:|Codecs|String|\r|\n/g, '')

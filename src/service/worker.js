@@ -68,14 +68,17 @@ exports.processJob = (queue) => {
 		console.log(`#### [BeeQueue]: Processing job ${job.id}`);
 		videoProcesser
 			.encodeVideo(job)
-			.then((ret) => {
+			.then(async (ret) => {
 				console.log('#### [MP4BOX] Start fragmentation the encoded video...');
 				let { sizes } = ret;
+				const { id, data } = job;
+				const { video_name } = data;
 				if (sizes) {
 					sizes = sizes.map((size) => {
-						return `${process.cwd()}/output/${job.data.video_id}/${job.data.video_name}_${size}.mp4`
+						return `${process.cwd()}/output/${job.data.video_id}/${job.data.video_name}_${size}.mp4#audio ${process.cwd()}/output/${job.data.video_id}/${job.data.video_name}_${size}.mp4#video`
 					}).join(' ');
-					console.log(sizes);
+					const fragRet = await videoProcesser.fragmentationVideo(id, video_name, sizes);
+					fragRet && handleSucc(job, done, ret);
 				}
 			})
 			.catch((error) => {
@@ -102,20 +105,25 @@ exports.processJob = (queue) => {
 		operation.variables = {
 			id: job.data.video_dbid,
 			isEncoded: 'Yes',
-			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.video_name}_${job.data
-				.video_size}_dashinit.mp4`
+			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/manifest.xml`
 		};
 		makePromise(execute(link, operation)).then((data) => {
 			console.log('#### [RSYNC] Start sync the encoded video to file server.');
-			global.rsync.execute(function(error, stdout, stderr) {
+			global.rsync.execute((error, code, cmd) => {
 				// we're done
 				if (error) {
 					console.error(`#### [RSYNC] Error when execute: ${error}`);
 					process.exit();
 				}
 				console.log(`#### [RSYNC] Sync successfully done.`);
+				done(null, ret);
+			}, data => {
+				const buffer = Buffer.from(data);
+				// console.log(buffer.toString());
+			}, data => {
+				console.error(`#### [RSYNC] Error when execute: ${data}`);
+				process.exit();
 			});
-			done(null, ret);
 		});
 	}
 };

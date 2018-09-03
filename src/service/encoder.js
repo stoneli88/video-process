@@ -8,6 +8,7 @@ Object.defineProperty(exports, '__esModule', {
 // -------------------------------------------------
 
 const fs = require('fs');
+const xml2js = require('xml2js');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const PATH = require('../utils/config');
@@ -112,101 +113,39 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 	const outputName = task.data.video_name;
 	const outputDIR = `${process.cwd()}/${OUTPUT_DIR}/${videoId}`;
 	const x264Command = [
-		'-preset slow',
-		'-movflags',
-		'+faststart',
-		'-profile:v high',
+		'-preset fast',
+		'-movflags +faststart',
+		'-r 24',
+		'-profile:v main',
 		'-x264opts keyint=48:min-keyint=48:no-scenecut',
-		'-bf 2',
-		'-g 30',
-		'-coder 1',
-		'-crf 18',
-		'-pix_fmt yuv420p',
 		'-c:a aac',
 		'-b:a 128k',
-		'-ac 2',
-		'-profile:a aac_low'
+		'-ac 2'
 	];
 	return new Promise((resolve, reject) => {
 		getVideoMetadata(videoPath)
 			.then(async (mp4info) => {
+				let result = null;
 				const videoHeight = parseInt(mp4info.video.height, 10);
-				let encodeRet = null;
-				const parameter = {
-					videoBitrate: 0,
-					videoSize: '',
-					videoPath,
-					videoId,
-					outputName
-				};
 				if (videoHeight <= 360) {
-					try {
-						parameter.videoSize = videoSizeMapper['360'];
-						parameter.videoBitrate = videoBitrateMapper['360'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['360']);
-					} catch (error) {
-						reject(error);
-					}
+					result = await processBySize(360, reject);
 				} else if (videoHeight <= 480 && videoHeight > 360) {
-					try {
-						parameter.videoSize = videoSizeMapper['360'];
-						parameter.videoBitrate = videoBitrateMapper['360'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['360']);
-
-						parameter.videoSize = videoSizeMapper['480'];
-						parameter.videoBitrate = videoBitrateMapper['480'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['480']);
-					} catch (error) {
-						reject(error);
-					}
+					result = await Promise.all([ processBySize(360, reject), processBySize(480, reject) ]);
 				} else if (videoHeight <= 720 && videoHeight > 480) {
-					try {
-						parameter.videoSize = videoSizeMapper['360'];
-						parameter.videoBitrate = videoBitrateMapper['360'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['360']);
-
-						parameter.videoSize = videoSizeMapper['480'];
-						parameter.videoBitrate = videoBitrateMapper['480'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['480']);
-
-						parameter.videoSize = videoSizeMapper['720'];
-						parameter.videoBitrate = videoBitrateMapper['720'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['720']);
-					} catch (error) {
-						reject(error);
-					}
+					result = await Promise.all([
+						processBySize(360, reject),
+						processBySize(480, reject),
+						processBySize(720, reject)
+					]);
 				} else if ((videoHeight <= 1080 && videoHeight > 720) || videoHeight > 1080) {
-					try {
-						parameter.videoSize = videoSizeMapper['360'];
-						parameter.videoBitrate = videoBitrateMapper['360'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['360']);
-
-						parameter.videoSize = videoSizeMapper['480'];
-						parameter.videoBitrate = videoBitrateMapper['480'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['480']);
-
-						parameter.videoSize = videoSizeMapper['720'];
-						parameter.videoBitrate = videoBitrateMapper['720'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['720']);
-
-						parameter.videoSize = videoSizeMapper['1080'];
-						parameter.videoBitrate = videoBitrateMapper['1080'];
-						encodeRet = await _encode(parameter);
-						sizes.push(videoSizeMapper['1080']);
-					} catch (error) {
-						reject(error);
-					}
+					result = await Promise.all([
+						processBySize(360, reject),
+						processBySize(480, reject),
+						processBySize(720, reject),
+						processBySize(1080, reject)
+					]);
 				}
-				if (encodeRet) makeScreenshot(task, resolve, reject, sizes);
+				result && makeScreenshot(task, resolve, reject, sizes);
 			})
 			.catch((e) => {
 				console.log('#### [FFPROBE] Get Video metedata Error: /n');
@@ -214,6 +153,24 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 				reject(e);
 			});
 	});
+
+	async function processBySize(size, reject) {
+		try {
+			const parameter = {
+				videoBitrate: 0,
+				videoSize: '',
+				videoPath,
+				videoId,
+				outputName
+			};
+			parameter.videoSize = videoSizeMapper[size];
+			parameter.videoBitrate = videoBitrateMapper[size];
+			sizes.push(videoSizeMapper[size]);
+			return await _encode(parameter);
+		} catch (error) {
+			reject(error);
+		}
+	}
 
 	async function _encode(parameter) {
 		const { videoPath, videoSize, videoBitrate, videoId, outputName } = parameter;
@@ -256,26 +213,46 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 
 // fragmentation video.
 // remeber install mp4box in you OS from https://gpac.wp.imt.fr/downloads/.
-const fragmentationVideo = (exports.fragmentationVideo = (jobId, video_name, video_size, videoPath) => {
+const fragmentationVideo = (exports.fragmentationVideo = (jobId, video_name, videoPath) => {
 	return new Promise((resolve, reject) => {
 		exec(
-			`mp4box -dash 10000 -rap -profile live -bs-switching no -mpd-title ${video_name} -base-url http://${CONFIG.VIDEO_SERVER}/${jobId} -out ${process.cwd()}/output/${jobId}/${video_name}_${video_size}.mpd ${videoPath}#audio ${videoPath}#video`,
+			`mp4box -dash 4000 -rap -profile live -bs-switching no -mpd-title ${video_name} -base-url http://${CONFIG.VIDEO_SERVER}/${jobId} -out ${process.cwd()}/output/${jobId}/manifest.mpd ${videoPath}`,
 			(error, stdout, stderr) => {
 				if (error) {
 					console.log(`#### [MP4BOX] Error when fragmentation video : ${error}`);
 					reject(error);
 				} else {
 					// rename file extension to xml.
+					const parser = new xml2js.Parser();
 					fs.rename(
-						`${process.cwd()}/output/${jobId}/${video_name}_${video_size}.mpd`,
-						`${process.cwd()}/output/${jobId}/${video_name}_${video_size}.xml`,
+						`${process.cwd()}/output/${jobId}/manifest.mpd`,
+						`${process.cwd()}/output/${jobId}/manifest.xml`,
 						function(err) {
 							if (error) {
 								console.log(`#### [MP4BOX] Error when fragmentation video : ${error}`);
 								reject(error);
 							} else {
 								console.log('#### [MP4BOX] fragmentation video successful.');
-								resolve();
+								fs.readFile(`${process.cwd()}/output/${jobId}/manifest.xml`, 'utf-8', function(
+									err,
+									data
+								) {
+									if (err) {
+										console.log(`#### [MP4BOX] Error when read xml : ${error}`);
+										reject(error);
+									}
+									parser.parseString(data, function(err, res) {
+										if (err) throw err;
+										const { MPD } = res;
+										const { $, Period, ProgramInformation, BaseURL } = MPD;
+										const { AdaptationSet } = Period;
+										console.log(Period);
+										console.log(BaseURL);
+										resolve({
+											path: `${process.cwd()}/output/${jobId}/manifest.xml`
+										});
+									});
+								});
 							}
 						}
 					);

@@ -39,6 +39,7 @@ const rsync = new Rsync()
   .archive()
   .compress()
   .progress()
+  .exclude(['.git', '.DS_Store'])
   .source(path.resolve(process.cwd(), 'output'))
   .destination('rsync@localhost:/rsync');
 

@@ -59,3 +59,8 @@ typings/
 
 # next.js build output
 .next
+
+# video
+*.m4s
+*.mp4
+manifest.xml
