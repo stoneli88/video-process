@@ -245,9 +245,8 @@ const fragmentationVideo = (exports.fragmentationVideo = (jobId, video_name, vid
 										if (err) throw err;
 										const { MPD } = res;
 										const { $, Period, ProgramInformation, BaseURL } = MPD;
-										const { AdaptationSet } = Period;
-										console.log(Period);
-										console.log(BaseURL);
+										const { duration, AdaptationSet } = Period.$;
+										// AdaptationSet.map();
 										resolve({
 											path: `${process.cwd()}/output/${jobId}/manifest.xml`
 										});
