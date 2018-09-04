@@ -69,17 +69,7 @@ exports.processJob = (queue) => {
 		videoProcesser
 			.encodeVideo(job)
 			.then(async (ret) => {
-				console.log('#### [MP4BOX] Start fragmentation the encoded video...');
-				let { sizes } = ret;
-				const { id, data } = job;
-				const { video_name } = data;
-				if (sizes) {
-					sizes = sizes.map((size) => {
-						return `${process.cwd()}/output/${job.data.video_id}/${job.data.video_name}_${size}.mp4#audio ${process.cwd()}/output/${job.data.video_id}/${job.data.video_name}_${size}.mp4#video`
-					}).join(' ');
-					const fragRet = await videoProcesser.fragmentationVideo(id, video_name, sizes);
-					fragRet && handleSucc(job, done, ret);
-				}
+				ret && handleSucc(job, done, ret);
 			})
 			.catch((error) => {
 				handleErr(job, done);

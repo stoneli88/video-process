@@ -8,12 +8,10 @@ Object.defineProperty(exports, '__esModule', {
 // -------------------------------------------------
 
 const fs = require('fs');
-const xml2js = require('xml2js');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const PATH = require('../utils/config');
 const CONFIG = require('../utils/config');
-const exec = require('child_process').exec;
 
 /**
  * 480x270 @ 350 kbps video with 128 kbps audio (bits/pixel: 0.113)
@@ -267,53 +265,3 @@ const hlsSegmentVideo = (exports.hlsSegmentVideo = (videoId, videoName, videoSiz
 	});
 });
 
-// fragmentation video.
-// remeber install mp4box in you OS from https://gpac.wp.imt.fr/downloads/.
-const fragmentationVideo = (exports.fragmentationVideo = (jobId, video_name, videoPath) => {
-	return new Promise((resolve, reject) => {
-		exec(
-			`mp4box -dash 4000 -rap -profile live -bs-switching no -mpd-title ${video_name} -base-url http://${CONFIG.VIDEO_SERVER}/${jobId} -out ${process.cwd()}/output/${jobId}/manifest.mpd ${videoPath}`,
-			(error, stdout, stderr) => {
-				if (error) {
-					console.log(`#### [MP4BOX] Error when fragmentation video : ${error}`);
-					reject(error);
-				} else {
-					// rename file extension to xml.
-					const parser = new xml2js.Parser();
-					fs.rename(
-						`${process.cwd()}/output/${jobId}/manifest.mpd`,
-						`${process.cwd()}/output/${jobId}/manifest.xml`,
-						function(err) {
-							if (error) {
-								console.log(`#### [MP4BOX] Error when fragmentation video : ${error}`);
-								reject(error);
-							} else {
-								console.log('#### [MP4BOX] fragmentation video successful.');
-								fs.readFile(`${process.cwd()}/output/${jobId}/manifest.xml`, 'utf-8', function(
-									err,
-									data
-								) {
-									if (err) {
-										console.log(`#### [MP4BOX] Error when read xml : ${error}`);
-										reject(error);
-									}
-									parser.parseString(data, function(err, res) {
-										if (err) throw err;
-										const { MPD } = res;
-										const { Period, BaseURL } = MPD;
-										const { duration, AdaptationSet } = Period[0].$;
-										console.log(Period[0].$);
-										// AdaptationSet.map();
-										resolve({
-											path: `${process.cwd()}/output/${jobId}/manifest.xml`
-										});
-									});
-								});
-							}
-						}
-					);
-				}
-			}
-		);
-	});
-});
