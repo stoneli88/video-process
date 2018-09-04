@@ -105,7 +105,7 @@ const makeScreenshot = (exports.makeScreenShot = (task, resolve, reject, sizes) 
 		});
 });
 
-// Encode video
+// Encode video to mp4 format.
 const encodeVideo = (exports.encodeVideo = (task) => {
 	let sizes = [];
 	const videoId = task.data.video_id;
@@ -129,13 +129,23 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 				const videoHeight = parseInt(mp4info.video.height, 10);
 				if (videoHeight <= 360) {
 					result = await processBySize(360, reject);
+					result = await hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]);
 				} else if (videoHeight <= 480 && videoHeight > 360) {
 					result = await Promise.all([ processBySize(360, reject), processBySize(480, reject) ]);
+					result = await Promise.all([
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]),
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[480])
+					]);
 				} else if (videoHeight <= 720 && videoHeight > 480) {
 					result = await Promise.all([
 						processBySize(360, reject),
 						processBySize(480, reject),
 						processBySize(720, reject)
+					]);
+					result = await Promise.all([
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]),
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[480]),
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[720])
 					]);
 				} else if ((videoHeight <= 1080 && videoHeight > 720) || videoHeight > 1080) {
 					result = await Promise.all([
@@ -143,6 +153,12 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 						processBySize(480, reject),
 						processBySize(720, reject),
 						processBySize(1080, reject)
+					]);
+					result = await Promise.all([
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]),
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[480]),
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[720]),
+						hlsSegmentVideo(videoId, outputName, videoSizeMapper[1080])
 					]);
 				}
 				result && makeScreenshot(task, resolve, reject, sizes);
@@ -211,6 +227,46 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 	}
 });
 
+// http://elkpi.com/topics/ffmpeg-f-hls.html
+const hlsSegmentVideo = (exports.hlsSegmentVideo = (videoId, videoName, videoSize) => {
+	return new Promise((resolve, reject) => {
+		let startTime = null;
+		const videoPath = `${process.cwd()}/${OUTPUT_DIR}/${videoId}/${videoName}_${videoSize}.mp4`;
+		ffmpeg(videoPath)
+			.outputOptions([
+				'-profile:v baseline', // baseline profile (level 3.0) for H264 video codec
+				'-level 3.0',
+				`-s ${videoSize}`, // output video dimensions
+				'-start_number 0', // start the first .ts segment at index 0
+				'-hls_time 10', // 10 second segment duration
+				'-hls_list_size 0', // Maxmimum number of playlist entries (0 means all entries/infinite)
+				`-hls_base_url http://${CONFIG.VIDEO_SERVER}/${videoId}/`,
+				'-f hls' // HLS format
+			])
+			.output(`${process.cwd()}/${OUTPUT_DIR}/${videoId}/${videoName}_${videoSize}.m3u8`)
+			.on('start', function() {
+				startTime = Date.now();
+				console.log(`#### [FFMPEG]: Start to encode video to support HLS with size: ${videoSize} ...`);
+			})
+			.on('end', function() {
+				const endTime = Date.now();
+				console.log(
+					`#### [FFMPEG] Size ${videoSize} HLS support completed after ${(endTime - startTime) /
+						1000} seconds`
+				);
+				resolve({
+					encode_duration: (endTime - startTime) / 1000,
+					endTime
+				});
+			})
+			.on('error', function(err) {
+				console.log(`### [FFMPEG] Size ${videoSize} HLS support error: ` + err);
+				reject({ err });
+			})
+			.run();
+	});
+});
+
 // fragmentation video.
 // remeber install mp4box in you OS from https://gpac.wp.imt.fr/downloads/.
 const fragmentationVideo = (exports.fragmentationVideo = (jobId, video_name, videoPath) => {
@@ -244,8 +300,9 @@ const fragmentationVideo = (exports.fragmentationVideo = (jobId, video_name, vid
 									parser.parseString(data, function(err, res) {
 										if (err) throw err;
 										const { MPD } = res;
-										const { $, Period, ProgramInformation, BaseURL } = MPD;
-										const { duration, AdaptationSet } = Period.$;
+										const { Period, BaseURL } = MPD;
+										const { duration, AdaptationSet } = Period[0].$;
+										console.log(Period[0].$);
 										// AdaptationSet.map();
 										resolve({
 											path: `${process.cwd()}/output/${jobId}/manifest.xml`

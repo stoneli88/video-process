@@ -3,6 +3,7 @@
 const path = require('path');
 const CONFIG = require('../utils/config');
 const Queue = require('bee-queue');
+const log = require('single-line-log').stdout;
 const { createEncoderJOB, processJob } = require('../service/worker');
 
 // Babel Compiler
@@ -48,7 +49,7 @@ video_queue.on('job failed', (jobId, err) => {
 	console.log(`#### [BeeQueue]: Job ${jobId} failed with error ${err.message}`);
 });
 video_queue.on('job progress', (jobId, progress) => {
-	console.log(`#### [BeeQueue]: Job ${jobId} reported progress: ${progress}%`);
+	log(`#### [BeeQueue]: Job ${jobId} reported progress: ${progress}%\n`)
 });
 
 // Comment In Production, Just for developer to debug.

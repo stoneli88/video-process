@@ -20,6 +20,7 @@
         "prisma-binding": "^2.1.1",
         "rimraf": "~2.6.2",
         "rsync": "^0.6.1",
+        "single-line-log": "^1.1.2",
         "winston": "^3.0.0",
         "xml2js": "^0.4.19"
     },

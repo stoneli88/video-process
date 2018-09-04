@@ -63,4 +63,6 @@ typings/
 # video
 *.m4s
 *.mp4
+*.ts
+*.m3u8
 manifest.xml
