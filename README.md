@@ -19,3 +19,6 @@ https://www.radiantmediaplayer.com/guides/working-with-mp4box.html
 ### MPEG-DASH Working with FFmpeg
 https://www.radiantmediaplayer.com/guides/working-with-ffmpeg.html#ffmpeg-h264
 
+### create VOD HLS stream with ffmpeg almighty
+https://gist.github.com/mrbar42/ae111731906f958b396f30906004b3fa
+
