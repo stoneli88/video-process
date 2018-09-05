@@ -13,7 +13,7 @@ Object.defineProperty(exports, '__esModule', {
 // -------------------------------------------------
 
 // Use Apollo Link as a standalone client
-const uri = 'http://localhost:4000';
+const uri = CONFIG.GRAPHQL_ENDPOINT;
 const link = new HttpLink({ uri, fetch });
 const UPDATE_VIDEO_MUTATION = gql`
 	mutation UpdateVideoMutation(
@@ -44,19 +44,20 @@ const operation = {
 	variables: {}
 };
 
-// create JOBS.
-exports.createEncoderJOB = async (queue, jobData) => {
+// Create downloadble video job.
+exports.createJob = async (queue, jobData) => {
 	const job = await queue
 		.createJob({
 			video_id: jobData.videoUUID,
 			video_path: jobData.videoPath,
 			video_name: jobData.videoName,
 			video_dbid: jobData.videoID,
+			job_type: jobData.jobType,
 			job_created: jobData.created
 		})
 		.setId(jobData.videoUUID)
 		.timeout(60 * 60 * 1000)
-		.retries(1)
+		.retries(3)
 		.save();
 
 	return job;
@@ -65,17 +66,36 @@ exports.createEncoderJOB = async (queue, jobData) => {
 // process jobs.
 exports.processJob = (queue) => {
 	queue.process([ 1 ], (job, done) => {
-		console.log(`#### [BeeQueue]: Processing job ${job.id}`);
-		videoProcesser
-			.encodeVideo(job)
-			.then(async (ret) => {
-				ret && handleSucc(job, done, ret);
-			})
-			.catch((error) => {
-				handleErr(job, done);
-				done('#### [FFMPEG] Error: ' + JSON.stringify(error));
-				console.log(error);
-			});
+		console.log(`#### [BeeQueue]: Processing ${job.id} which TYPE is ${job.type} ...`);
+		handleRuning(job, done);
+		switch (job.job_type) {
+			case 'DWN':
+				videoProcesser
+					.createDownloadableVideo(job)
+					.then(async (ret) => {
+						ret && handleSucc(job, done, ret);
+					})
+					.catch((error) => {
+						handleErr(job, done);
+						done('#### [FFMPEG][TYPE:DWN] Error: ' + JSON.stringify(error));
+						console.log(error);
+					});
+				break;
+			case 'HLS':
+				videoProcesser
+					.createVODByHLS(job)
+					.then(async (ret) => {
+						ret && handleSucc(job, done, ret);
+					})
+					.catch((error) => {
+						handleErr(job, done);
+						done('#### [FFMPEG][TYPE:HLS] Error: ' + JSON.stringify(error));
+						console.log(error);
+					});
+				break;
+			default:
+				break;
+		}
 	});
 
 	function handleErr(job, done) {
@@ -87,6 +107,19 @@ exports.processJob = (queue) => {
 		};
 		makePromise(execute(link, operation)).catch((error) => {
 			console.log(`#### [GQL] While SET isEncoded is ERROR received error ${error}`);
+			done(err);
+		});
+	}
+
+	function handleRuning(job, done) {
+		operation.variables = {
+			id: job.data.video_dbid,
+			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.video_name}_${job.data
+				.video_size}_dashinit.mp4`,
+			isEncoded: 'RUNING'
+		};
+		makePromise(execute(link, operation)).catch((error) => {
+			console.log(`#### [GQL] While SET isEncoded is RUNING received error ${error}`);
 			done(err);
 		});
 	}

@@ -4,7 +4,7 @@ const path = require('path');
 const CONFIG = require('../utils/config');
 const Queue = require('bee-queue');
 const log = require('single-line-log').stdout;
-const { createEncoderJOB, processJob } = require('../service/worker');
+const { createJob, processJob } = require('../service/worker');
 
 // Babel Compiler
 // -------------------------------------------------
@@ -17,8 +17,7 @@ let video_queue;
 
 exports.video_queue = video_queue = new Queue('video_encoder', {
 	removeOnSuccess: false,
-	stallInterval: 5000,
-	delayedDebounce: 1000,
+	stallInterval: 2000,
 	redis: {
 		host: CONFIG.REDIS_SERVER,
 		port: 6379,
@@ -87,19 +86,36 @@ process.on('uncaughtException', async (err) => {
 
 const onCreateJob = (exports.onCreateJob = async (req, res) => {
 	let videoMetadata = {};
-	const { file, uuid, id } = req.body;
+	let videoJob = null;
+	const { file, uuid, id, type } = req.body;
 	const videoPath = path.resolve(process.cwd(), 'tmp', `tmp_video-${uuid}`, file);
 	try {
-		const start = Date.now();
-		const videoJob = createEncoderJOB(video_queue, {
-			videoPath: videoPath,
-			videoSize: '480',
-			videoName: file,
-			videoUUID: uuid,
-			videoID: id,
-			created: start
-		});
-		videoJob.then((job) => {
+		const created = Date.now();
+		switch (type) {
+			case 'download':
+				videoJob = createJob(video_queue, {
+					videoPath: videoPath,
+					videoName: file,
+					videoUUID: uuid,
+					videoID: id,
+					jobType: 'DWN',
+					created
+				});
+				break;
+			case 'hls':
+				videoJob = createJob(video_queue, {
+					videoPath: videoPath,
+					videoName: file,
+					videoUUID: uuid,
+					videoID: id,
+					jobType: 'HLS',
+					created
+				});
+				break;
+			default:
+				break;
+		}
+		videoJob && videoJob.then((job) => {
 			res.send({
 				success: true,
 				data: videoMetadata,
@@ -107,7 +123,7 @@ const onCreateJob = (exports.onCreateJob = async (req, res) => {
 			});
 		});
 	} catch (e) {
-		console.log(`#### [Bee-Queue] Create job error:`);
+		console.log(`#### [Bee-Queue] Create job error:\n`);
 		console.log(e);
 		res.status(500).send({
 			success: false,

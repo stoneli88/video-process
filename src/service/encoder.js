@@ -7,11 +7,11 @@ Object.defineProperty(exports, '__esModule', {
 });
 // -------------------------------------------------
 
-const fs = require('fs');
-const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const PATH = require('../utils/config');
 const CONFIG = require('../utils/config');
+const { execFile, exec } = require('child_process');
+const log = require('single-line-log').stdout;
 
 /**
  * 480x270 @ 350 kbps video with 128 kbps audio (bits/pixel: 0.113)
@@ -28,6 +28,7 @@ const videoBitrateMapper = {
 	'720': '2500',
 	'1080': '5500'
 };
+
 const videoSizeMapper = {
 	'360': '640x360',
 	'480': '854x480',
@@ -72,40 +73,42 @@ const getVideoMetadata = (exports.getVideoMetadata = (videoPath) => {
 	});
 });
 
-// Screenshot
-const makeScreenshot = (exports.makeScreenShot = (task, resolve, reject, sizes) => {
+// Make 10 Screenshot.
+const makeScreenshot = (exports.makeScreenShot = (task) => {
 	const startTime = Date.now();
 	const videoPath = task.data.video_path;
 	const outputName = task.data.video_name;
 	const videoId = task.data.video_id;
-	ffmpeg(videoPath)
-		.screenshots({
-			count: 10,
-			folder: `${process.cwd()}/${OUTPUT_DIR}/${videoId}/${outputName}`
-		})
-		.on('start', function(commandLine) {
-			console.log('#### [FFMPEG]: Start to make screenshoot.');
-		})
-		.on('end', () => {
-			const endTime = Date.now();
-			console.log(`#### [FFMPEG] screenshot completed after ${(endTime - startTime) / 1000} seconds`);
-			resolve({
-				encode_duration: (endTime - startTime) / 1000,
-				endTime,
-				sizes
+	return new Promise((resolve, reject) => {
+		ffmpeg(videoPath)
+			.screenshots({
+				count: 10,
+				folder: `${process.cwd()}/${OUTPUT_DIR}/${videoId}/${outputName}`
+			})
+			.on('start', function(commandLine) {
+				console.log('#### [FFMPEG]: Start to make screenshoot.');
+			})
+			.on('end', () => {
+				const endTime = Date.now();
+				console.log(`#### [FFMPEG] screenshot completed after ${(endTime - startTime) / 1000} seconds`);
+				resolve({
+					encode_duration: (endTime - startTime) / 1000,
+					endTime
+				});
+			})
+			.on('error', function(err) {
+				console.log('#### ffmpeg screenshot error: ' + err);
+				reject({
+					err
+				});
 			});
-		})
-		.on('error', function(err) {
-			console.log('#### ffmpeg screenshot error: ' + err);
-			reject({
-				err
-			});
-		});
+	});
 });
 
 // Encode video to mp4 format.
-const encodeVideo = (exports.encodeVideo = (task) => {
+const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 	let sizes = [];
+	const startTime = Date.now();
 	const videoId = task.data.video_id;
 	const videoPath = task.data.video_path;
 	const outputName = task.data.video_name;
@@ -159,7 +162,18 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 						hlsSegmentVideo(videoId, outputName, videoSizeMapper[1080])
 					]);
 				}
-				result && makeScreenshot(task, resolve, reject, sizes);
+				// result && makeScreenshot(task, resolve, reject, sizes);
+				if (result) {
+					const endTime = Date.now();
+					console.log(
+						`#### [FFMPEG] Create Downloadable Video completed after ${(endTime - startTime) /
+							1000} seconds`
+					);
+					resolve({
+						encode_duration: (endTime - startTime) / 1000,
+						endTime
+					});
+				}
 			})
 			.catch((e) => {
 				console.log('#### [FFPROBE] Get Video metedata Error: /n');
@@ -226,7 +240,7 @@ const encodeVideo = (exports.encodeVideo = (task) => {
 });
 
 // http://elkpi.com/topics/ffmpeg-f-hls.html
-const hlsSegmentVideo = (exports.hlsSegmentVideo = (videoId, videoName, videoSize) => {
+const createHLSSegmentVideo = (exports.createHLSSegmentVideo = (videoId, videoName, videoSize) => {
 	return new Promise((resolve, reject) => {
 		let startTime = null;
 		const videoPath = `${process.cwd()}/${OUTPUT_DIR}/${videoId}/${videoName}_${videoSize}.mp4`;
@@ -265,3 +279,26 @@ const hlsSegmentVideo = (exports.hlsSegmentVideo = (videoId, videoName, videoSiz
 	});
 });
 
+// https://gist.github.com/mrbar42/ae111731906f958b396f30906004b3fa
+const createVODByHLS = (exports.createVODByHLS = (task) => {
+	let startTime = null;
+	return new Promise((resolve, reject) => {
+		const videoId = task.data.video_id;
+		const videoPath = task.data.video_path;
+		const outputDIR = `${process.cwd()}/${OUTPUT_DIR}/${videoId}`;
+		exec(`chmod +x ${process.cwd()}/bin/create-vod-hls.sh`, (error, stdout, stderr) => {
+			if (error) reject(error);
+			startTime = Date.now();
+			log('#### [FFMPEG-HLS] begin HLS Vod playlist is successfully completed.\n');
+			execFile(`${process.cwd()}/bin/create-vod-hls.sh`, [ videoPath, outputDIR ], (error, stdout, stderr) => {
+				if (error) reject(error);
+				const endTime = Date.now();
+				console.log('#### [FFMPEG-HLS] HLS Vod playlist is successfully completed.');
+				resolve({
+					encode_duration: (endTime - startTime) / 1000,
+					endTime
+				});
+			});
+		});
+	});
+});

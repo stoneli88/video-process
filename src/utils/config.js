@@ -10,4 +10,5 @@ exports.FFMPEG_BIN = path.join('/', 'usr', 'local', 'bin', 'ffmpeg'); // mac
 exports.FFPROBE_BIN = path.join('/', 'usr', 'local', 'bin', 'ffprobe'); //mac
 exports.PRISMA_ENDPOINT = '127.0.0.1:4466';
 exports.REDIS_SERVER = '127.0.0.1';
+exports.GRAPHQL_ENDPOINT = 'http://localhost:4000';
 exports.VIDEO_SERVER = "localhost:9080/output";
