@@ -65,6 +65,7 @@ const onSimpleUpload = (fields, file, res) => {
       uuid,
       () => {
         responseData.success = true;
+        responseData.uuid = uuid;
         res.send(responseData);
       },
       () => {
