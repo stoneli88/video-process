@@ -15,7 +15,7 @@ Object.defineProperty(exports, '__esModule', {
 const onGetVideoPlayAddress = (exports.onGetVideoPlayAddress = async (req, res) => {
 	const { uuid } = req.params;
 
-	video_queue.getJob(uuid, (err, job) => {
+	video_queue.getJob(`${uuid}-HLS`, (err, job) => {
 		if (err) {
 			console.log(`#### [Bee-Queue] Query job status error: ${err}`);
 			res.status(500).send({
@@ -24,7 +24,7 @@ const onGetVideoPlayAddress = (exports.onGetVideoPlayAddress = async (req, res) 
 			});
 		}
 		if (job.status === 'succeeded') {
-			const name = job.data.video_name;
+			const name = job.data.mov_name;
 			const mp4info = spawn(`${process.cwd()}/bin/mp4info`, [
 				`${process.cwd()}/output/${uuid}/${name}_640x360.mp4`
 			]);
@@ -40,7 +40,8 @@ const onGetVideoPlayAddress = (exports.onGetVideoPlayAddress = async (req, res) 
 				res.send({
 					success: true,
 					video: {
-						xml: `${CONFIG.VIDEO_SERVER}/${uuid}/manifest.xml`,
+						cover: `${CONFIG.VIDEO_SERVER}/${uuid}/cover.png`,
+						xml: `${CONFIG.VIDEO_SERVER}/${uuid}/playlist.m3u8`,
 						mp4info: data
 							.toString()
 							.replace(/:|Codecs|String|\r|\n/g, '')

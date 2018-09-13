@@ -7,9 +7,12 @@ Object.defineProperty(exports, '__esModule', {
 });
 // -------------------------------------------------
 
+const fs = require('fs');
+const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
+const cpFile = require('cp-file');
 const PATH = require('../utils/config');
-const CONFIG = require('../utils/config');
+const mkdirp = require('mkdirp');
 const { execFile, exec } = require('child_process');
 const log = require('single-line-log').stdout;
 
@@ -109,9 +112,9 @@ const makeScreenshot = (exports.makeScreenShot = (task) => {
 const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 	let sizes = [];
 	const startTime = Date.now();
-	const videoId = task.data.video_id;
-	const videoPath = task.data.video_path;
-	const outputName = task.data.video_name;
+	const videoId = task.data.video_dbid;
+	const videoPath = task.data.videoPath;
+	const outputName = task.data.mov_name;
 	const outputDIR = `${process.cwd()}/${OUTPUT_DIR}/${videoId}`;
 	const x264Command = [
 		'-preset fast',
@@ -130,23 +133,13 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 				const videoHeight = parseInt(mp4info.video.height, 10);
 				if (videoHeight <= 360) {
 					result = await processBySize(360, reject);
-					result = await hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]);
 				} else if (videoHeight <= 480 && videoHeight > 360) {
 					result = await Promise.all([ processBySize(360, reject), processBySize(480, reject) ]);
-					result = await Promise.all([
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]),
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[480])
-					]);
 				} else if (videoHeight <= 720 && videoHeight > 480) {
 					result = await Promise.all([
 						processBySize(360, reject),
 						processBySize(480, reject),
 						processBySize(720, reject)
-					]);
-					result = await Promise.all([
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]),
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[480]),
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[720])
 					]);
 				} else if ((videoHeight <= 1080 && videoHeight > 720) || videoHeight > 1080) {
 					result = await Promise.all([
@@ -154,12 +147,6 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 						processBySize(480, reject),
 						processBySize(720, reject),
 						processBySize(1080, reject)
-					]);
-					result = await Promise.all([
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[360]),
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[480]),
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[720]),
-						hlsSegmentVideo(videoId, outputName, videoSizeMapper[1080])
 					]);
 				}
 				// result && makeScreenshot(task, resolve, reject, sizes);
@@ -239,65 +226,42 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 	}
 });
 
-// http://elkpi.com/topics/ffmpeg-f-hls.html
-const createHLSSegmentVideo = (exports.createHLSSegmentVideo = (videoId, videoName, videoSize) => {
-	return new Promise((resolve, reject) => {
-		let startTime = null;
-		const videoPath = `${process.cwd()}/${OUTPUT_DIR}/${videoId}/${videoName}_${videoSize}.mp4`;
-		ffmpeg(videoPath)
-			.outputOptions([
-				'-profile:v baseline', // baseline profile (level 3.0) for H264 video codec
-				'-level 3.0',
-				`-s ${videoSize}`, // output video dimensions
-				'-start_number 0', // start the first .ts segment at index 0
-				'-hls_time 10', // 10 second segment duration
-				'-hls_list_size 0', // Maxmimum number of playlist entries (0 means all entries/infinite)
-				`-hls_base_url http://${CONFIG.VIDEO_SERVER}/${videoId}/`,
-				'-f hls' // HLS format
-			])
-			.output(`${process.cwd()}/${OUTPUT_DIR}/${videoId}/${videoName}_${videoSize}.m3u8`)
-			.on('start', function() {
-				startTime = Date.now();
-				console.log(`#### [FFMPEG]: Start to encode video to support HLS with size: ${videoSize} ...`);
-			})
-			.on('end', function() {
-				const endTime = Date.now();
-				console.log(
-					`#### [FFMPEG] Size ${videoSize} HLS support completed after ${(endTime - startTime) /
-						1000} seconds`
-				);
-				resolve({
-					encode_duration: (endTime - startTime) / 1000,
-					endTime
-				});
-			})
-			.on('error', function(err) {
-				console.log(`### [FFMPEG] Size ${videoSize} HLS support error: ` + err);
-				reject({ err });
-			})
-			.run();
-	});
-});
-
 // https://gist.github.com/mrbar42/ae111731906f958b396f30906004b3fa
 const createVODByHLS = (exports.createVODByHLS = (task) => {
 	let startTime = null;
 	return new Promise((resolve, reject) => {
-		const videoId = task.data.video_id;
-		const videoPath = task.data.video_path;
+		const videoId = task.data.video_dbid;
 		const outputDIR = `${process.cwd()}/${OUTPUT_DIR}/${videoId}`;
 		exec(`chmod +x ${process.cwd()}/bin/create-vod-hls.sh`, (error, stdout, stderr) => {
-			if (error) reject(error);
 			startTime = Date.now();
-			log('#### [FFMPEG-HLS] begin HLS Vod playlist is successfully completed.\n');
-			execFile(`${process.cwd()}/bin/create-vod-hls.sh`, [ videoPath, outputDIR ], (error, stdout, stderr) => {
-				if (error) reject(error);
-				const endTime = Date.now();
-				console.log('#### [FFMPEG-HLS] HLS Vod playlist is successfully completed.');
-				resolve({
-					encode_duration: (endTime - startTime) / 1000,
-					endTime
-				});
+			if (error) {
+				reject(error);
+				return;
+			}
+			log('#### [FFMPEG-HLS] Create directory complete.\n');
+			mkdirp(outputDIR, async function(err) {
+				if (err) {
+					reject(error);
+					return;
+				}
+				await cpFile(task.data.coverPath, `${outputDIR}/cover.png`);
+				log('#### [FFMPEG-HLS] Copy image file complete.\n');
+				execFile(
+					`${process.cwd()}/bin/create-vod-hls.sh`,
+					[ task.data.videoPath, outputDIR ],
+					(error, stdout, stderr) => {
+						if (error) {
+							reject(error);
+							return;
+						}
+						const endTime = Date.now();
+						console.log('#### [FFMPEG-HLS] HLS Vod playlist is successfully completed.');
+						resolve({
+							encode_duration: (endTime - startTime) / 1000,
+							endTime
+						});
+					}
+				);
 			});
 		});
 	});

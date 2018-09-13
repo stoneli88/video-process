@@ -87,27 +87,34 @@ process.on('uncaughtException', async (err) => {
 const onCreateJob = (exports.onCreateJob = async (req, res) => {
 	let videoMetadata = {};
 	let videoJob = null;
-	const { file, uuid, id, type } = req.body;
-	const videoPath = path.resolve(process.cwd(), 'tmp', `tmp_video-${uuid}`, file);
+	const { type, cover_name, cover_uuid, mov_name, mov_uuid, video_id } = req.body;
+	const videoPath = path.resolve(process.cwd(), 'tmp', `tmp_video-${mov_uuid}`, mov_name);
+	const coverPath = path.resolve(process.cwd(), 'tmp', `tmp_video-${cover_uuid}`, cover_name);
 	try {
 		const created = Date.now();
 		switch (type) {
 			case 'download':
 				videoJob = createJob(video_queue, {
-					videoPath: videoPath,
-					videoName: file,
-					videoUUID: uuid,
-					videoID: id,
+					cover_name,
+					cover_uuid,
+					mov_name,
+					mov_uuid,
+					videoPath,
+					coverPath,
+					videoID: video_id,
 					jobType: 'DWN',
 					created
 				});
 				break;
 			case 'hls':
 				videoJob = createJob(video_queue, {
-					videoPath: videoPath,
-					videoName: file,
-					videoUUID: uuid,
-					videoID: id,
+					cover_name,
+					cover_uuid,
+					mov_name,
+					mov_uuid,
+					videoPath,
+					coverPath,
+					videoID: video_id,
 					jobType: 'HLS',
 					created
 				});

@@ -20,31 +20,19 @@ const link = new HttpLink({ uri, fetch });
 const UPDATE_VIDEO_MUTATION = gql`
 	mutation UpdateVideoMutation(
 		$id: String!
-		$uuid: String
-		$name: String
-		$description: String
-		$category: String
-		$isEncoded: String
-		$path: String
+		$isEncoded: String!
 		$channel: String
 		$duration: String
 		$framerate: String
 		$hd: Boolean
-		$preview_url: String
 	) {
 		updateVideo(
 			id: $id
-			uuid: $uuid
-			name: $name
-			description: $description
-			category: $category
 			isEncoded: $isEncoded
-			path: $path
 			channel: $channel,
 			duration: $duration,
 			framerate: $framerate,
 			hd: $hd,
-			preview_url: $preview_url
 		) {
 			id
 		}
@@ -60,14 +48,17 @@ const operation = {
 exports.createJob = async (queue, jobData) => {
 	const job = await queue
 		.createJob({
-			video_id: jobData.videoUUID,
-			video_path: jobData.videoPath,
-			video_name: jobData.videoName,
+			videoPath: jobData.videoPath,
+			coverPath: jobData.coverPath,
+			cover_name: jobData.cover_name,
+			cover_uuid: jobData.cover_uuid,
+			mov_name: jobData.mov_name,
+			mov_uuid: jobData.mov_uuid,
 			video_dbid: jobData.videoID,
 			job_type: jobData.jobType,
 			job_created: jobData.created
 		})
-		.setId(jobData.videoUUID)
+		.setId(jobData.jobType === "DWN" ? `${jobData.videoID}-DWN` : `${jobData.videoID}-HLS`)
 		.timeout(60 * 60 * 1000)
 		.retries(3)
 		.save();
@@ -78,9 +69,9 @@ exports.createJob = async (queue, jobData) => {
 // process jobs.
 exports.processJob = (queue) => {
 	queue.process([ 1 ], (job, done) => {
-		console.log(`#### [BeeQueue]: Processing ${job.id} which TYPE is ${job.type} ...`);
+		console.log(`#### [BeeQueue]: Processing ${job.id} which TYPE is ${job.data.job_type} ...`);
 		handleRuning(job, done);
-		switch (job.job_type) {
+		switch (job.data.job_type) {
 			case 'DWN':
 				videoProcesser
 					.createDownloadableVideo(job)
@@ -113,8 +104,6 @@ exports.processJob = (queue) => {
 	function handleErr(job, done) {
 		operation.variables = {
 			id: job.data.video_dbid,
-			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.video_name}_${job.data
-				.video_size}_dashinit.mp4`,
 			isEncoded: 'ERROR'
 		};
 		makePromise(execute(link, operation)).catch((error) => {
@@ -126,8 +115,6 @@ exports.processJob = (queue) => {
 	function handleRuning(job, done) {
 		operation.variables = {
 			id: job.data.video_dbid,
-			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.video_name}_${job.data
-				.video_size}_dashinit.mp4`,
 			isEncoded: 'RUNING'
 		};
 		makePromise(execute(link, operation)).catch((error) => {
@@ -140,10 +127,10 @@ exports.processJob = (queue) => {
 		operation.variables = {
 			id: job.data.video_dbid,
 			isEncoded: 'Yes',
-			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/manifest.xml`
+			path: `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/playlist.m3u8`
 		};
-		getVideoMetadata(job.data.video_path).then((mp4Info) => {
-			console.log(mp4Info);
+		getVideoMetadata(job.data.videoPath).then((mp4Info) => {
+			// console.log(mp4Info);
 			makePromise(execute(link, operation)).then((data) => {
 				console.log('#### [RSYNC] Start sync the encoded video to file server.');
 				global.rsync.execute((error, code, cmd) => {

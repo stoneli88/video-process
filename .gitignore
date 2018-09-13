@@ -65,4 +65,5 @@ typings/
 *.mp4
 *.ts
 *.m3u8
+*.png
 manifest.xml
