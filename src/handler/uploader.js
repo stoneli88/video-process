@@ -207,7 +207,7 @@ const combineChunks = (file, uuid, success, failure) => {
         () => {
           rimraf(chunksDir, rimrafError => {
             if (rimrafError) {
-              console.log("Problem deleting chunks dir! " + rimrafError);
+              logger.info("Problem deleting chunks dir! " + rimrafError);
             }
           });
           success();

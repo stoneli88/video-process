@@ -20,29 +20,29 @@ describe('Video Process Queue', function() {
 		});
 
 		this.video_queue.on('ready', () => {
-			console.log('#### [BeeQueue]: queue now ready to start doing things.');
+			logger.info('#### [BeeQueue]: queue now ready to start doing things.');
 		});
 		this.video_queue.on('error', (err) => {
-			console.log(`#### [BeeQueue]: ${err.message}`);
+			logger.info(`#### [BeeQueue]: ${err.message}`);
 		});
 		this.video_queue.on('failed', (job, err) => {
-			console.log(err);
-			console.log(`#### [BeeQueue]: Job ${job.id} failed with error ${err.message}`);
+			logger.info(err);
+			logger.info(`#### [BeeQueue]: Job ${job.id} failed with error ${err.message}`);
 		});
 		this.video_queue.on('retrying', (job, err) => {
-			console.log(`#### [BeeQueue]: Job ${job.id} failed with error ${err.message} but is being retried!`);
+			logger.info(`#### [BeeQueue]: Job ${job.id} failed with error ${err.message} but is being retried!`);
 		});
 		this.video_queue.on('stalled', (jobId) => {
-			console.log(`#### [BeeQueue]: Job ${jobId} stalled and will be reprocessed`);
+			logger.info(`#### [BeeQueue]: Job ${jobId} stalled and will be reprocessed`);
 		});
 		this.video_queue.on('job succeeded', (jobId, result) => {
-			console.log(`#### [BeeQueue]: Job ${jobId} succeeded with total time: ${result.encode_duration}`);
+			logger.info(`#### [BeeQueue]: Job ${jobId} succeeded with total time: ${result.encode_duration}`);
 		});
 		this.video_queue.on('job failed', (jobId, err) => {
-			console.log(`#### [BeeQueue]: Job ${jobId} failed with error ${err.message}`);
+			logger.info(`#### [BeeQueue]: Job ${jobId} failed with error ${err.message}`);
 		});
 		this.video_queue.on('job progress', (jobId, progress) => {
-			console.log(`#### [BeeQueue]: Job ${jobId} reported progress: ${progress}%`);
+			logger.info(`#### [BeeQueue]: Job ${jobId} reported progress: ${progress}%`);
 		});
 		this.video_queue.destroy();
 		processJob(this.video_queue);

@@ -89,18 +89,18 @@ const makeScreenshot = (exports.makeScreenShot = (task) => {
 				folder: `${process.cwd()}/${OUTPUT_DIR}/${videoId}/${outputName}`
 			})
 			.on('start', function(commandLine) {
-				console.log('#### [FFMPEG]: Start to make screenshoot.');
+				logger.info('#### [FFMPEG]: Start to make screenshoot.');
 			})
 			.on('end', () => {
 				const endTime = Date.now();
-				console.log(`#### [FFMPEG] screenshot completed after ${(endTime - startTime) / 1000} seconds`);
+				logger.info(`#### [FFMPEG] screenshot completed after ${(endTime - startTime) / 1000} seconds`);
 				resolve({
 					encode_duration: (endTime - startTime) / 1000,
 					endTime
 				});
 			})
 			.on('error', function(err) {
-				console.log('#### ffmpeg screenshot error: ' + err);
+				logger.info('#### ffmpeg screenshot error: ' + err);
 				reject({
 					err
 				});
@@ -152,7 +152,7 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 				// result && makeScreenshot(task, resolve, reject, sizes);
 				if (result) {
 					const endTime = Date.now();
-					console.log(
+					logger.info(
 						`#### [FFMPEG] Create Downloadable Video completed after ${(endTime - startTime) /
 							1000} seconds`
 					);
@@ -163,8 +163,8 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 				}
 			})
 			.catch((e) => {
-				console.log('#### [FFPROBE] Get Video metedata Error: /n');
-				console.log(e);
+				logger.info('#### [FFPROBE] Get Video metedata Error: /n');
+				logger.info(e);
 				reject(e);
 			});
 	});
@@ -192,7 +192,7 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 		return new Promise((resolve, reject) => {
 			ensureExists(outputDIR, '0744', function(err) {
 				const startTime = Date.now();
-				if (err) console.log('#### [NODEJS] Create directory failed, ' + err);
+				if (err) logger.info('#### [NODEJS] Create directory failed, ' + err);
 				ffmpeg(videoPath)
 					.videoBitrate(videoBitrate)
 					.videoCodec('libx264')
@@ -203,11 +203,11 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 						task.reportProgress(progress.percent);
 					})
 					.on('start', function(commandLine) {
-						console.log(`#### [FFMPEG]: Start to encode video with size: ${videoSize} ...`);
+						logger.info(`#### [FFMPEG]: Start to encode video with size: ${videoSize} ...`);
 					})
 					.on('end', function() {
 						const endTime = Date.now();
-						console.log(
+						logger.info(
 							`#### [FFMPEG] Size ${videoSize} encode completed after ${(endTime - startTime) /
 								1000} seconds`
 						);
@@ -217,7 +217,7 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 						});
 					})
 					.on('error', function(err) {
-						console.log(`### [FFMPEG] Size ${videoSize} ffmpeg error: ` + err);
+						logger.info(`### [FFMPEG] Size ${videoSize} ffmpeg error: ` + err);
 						reject({ err });
 					})
 					.run();
@@ -255,7 +255,7 @@ const createVODByHLS = (exports.createVODByHLS = (task) => {
 							return;
 						}
 						const endTime = Date.now();
-						console.log('#### [FFMPEG-HLS] HLS Vod playlist is successfully completed.');
+						logger.info('#### [FFMPEG-HLS] HLS Vod playlist is successfully completed.');
 						resolve({
 							encode_duration: (endTime - startTime) / 1000,
 							endTime
