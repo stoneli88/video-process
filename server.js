@@ -64,14 +64,15 @@ const router = express.Router(); // get an instance of the express Router
 
 router.post('/uploads', uploaderAPI.onUpload);
 router.post('/queue/create_job', queueAPI.onCreateJob);
+router.post('/queue/reload/:jobid', queueAPI.onReloadJob);
 
 router.delete('/upload/:uuid', uploaderAPI.onDeleteFile);
-router.delete('/queue/:jobid', queueAPI.onRemoveJob);
+router.delete('/video/:videoid', videoAPI.onDeleteVideo);
 
 router.get('/queue/overview', queueAPI.onJobOverview);
 router.get('/queue/all/:jobstatus/:size', queueAPI.onGetJobs);
 router.get('/queue/stats/:jobid', queueAPI.onQueryJobStats);
-router.get('/video/play/:uuid', videoAPI.onGetVideoPlayAddress);
+router.get('/video/play/:uuid', videoAPI.onGetVideo);
 
 // REGISTER OUR ROUTES -------------------------------
 // all of our routes will be prefixed with /api

@@ -86,7 +86,9 @@ queue.process([ 1 ], (job, done) => {
 			videoProcesser
 				.createDownloadableVideo(job)
 				.then(async (ret) => {
-					ret && handleSucc(job, done, ret);
+					videoProcesser.createThumbnails(job.data.videoPath).then(() => {
+						ret && handleSucc(job, done, ret);
+					});
 				})
 				.catch((error) => {
 					handleErr(job, done);
@@ -142,25 +144,25 @@ function handleSucc(job, done, ret) {
 		getVideoMetadata(job.data.videoPath).then((mp4info) => {
 			const videoHeight = parseInt(mp4info.video.height, 10);
 			if (videoHeight <= 360) {
-				operation.variables.manualRes = `${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data
+				operation.variables.manualRes = `${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data
 					.mov_name}_640x360`;
 			} else if (videoHeight <= 480 && videoHeight > 360) {
 				operation.variables.manualRes = [
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_640x360`,
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_854x480`
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_640x360`,
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_854x480`
 				].join(',');
 			} else if (videoHeight <= 720 && videoHeight > 480) {
 				operation.variables.manualRes = [
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_640x360`,
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_854x480`,
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_1280x720`
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_640x360`,
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_854x480`,
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_1280x720`
 				].join(',');
 			} else if ((videoHeight <= 1080 && videoHeight > 720) || videoHeight > 1080) {
 				operation.variables.manualRes = [
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_640x360`,
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_854x480`,
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_1280x720`,
-					`${CONFIG.VIDEO_SERVER}/${job.data.video_id}/${job.data.mov_name}_1920x1080`
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_640x360`,
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_854x480`,
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_1280x720`,
+					`${CONFIG.VIDEO_SERVER}/${job.data.video_dbid}/${job.data.mov_name}_1920x1080`
 				].join(',');
 			}
 			whenSuccess(link, operation, done);

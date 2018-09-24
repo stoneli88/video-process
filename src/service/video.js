@@ -77,7 +77,7 @@ const getVideoMetadata = (exports.getVideoMetadata = (videoPath) => {
 });
 
 // Make 10 Screenshot.
-const makeScreenshot = (exports.makeScreenShot = (task) => {
+exports.makeScreenShot = (task) => {
 	const startTime = Date.now();
 	const videoPath = task.data.video_path;
 	const outputName = task.data.video_name;
@@ -106,10 +106,10 @@ const makeScreenshot = (exports.makeScreenShot = (task) => {
 				});
 			});
 	});
-});
+};
 
 // Encode video to mp4 format.
-const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
+exports.createDownloadableVideo = (task) => {
 	let sizes = [];
 	const startTime = Date.now();
 	const videoId = task.data.video_dbid;
@@ -224,10 +224,10 @@ const createDownloadableVideo = (exports.createDownloadableVideo = (task) => {
 			});
 		});
 	}
-});
+};
 
 // https://gist.github.com/mrbar42/ae111731906f958b396f30906004b3fa
-const createVODByHLS = (exports.createVODByHLS = (task) => {
+exports.createVODByHLS = (task) => {
 	let startTime = null;
 	return new Promise((resolve, reject) => {
 		const videoId = task.data.video_dbid;
@@ -245,7 +245,7 @@ const createVODByHLS = (exports.createVODByHLS = (task) => {
 					return;
 				}
 				await cpFile(task.data.coverPath, `${outputDIR}/cover.png`);
-				log('#### [FFMPEG-HLS] Copy image file complete.\n');
+				logger.info('#### [FFMPEG-HLS] Copy image file complete.\n');
 				execFile(
 					`${process.cwd()}/bin/create-vod-hls.sh`,
 					[ task.data.videoPath, outputDIR ],
@@ -265,4 +265,26 @@ const createVODByHLS = (exports.createVODByHLS = (task) => {
 			});
 		});
 	});
-});
+};
+
+// https://trac.ffmpeg.org/wiki/Chinese_Font_%E4%BB%8E%E8%A7%86%E9%A2%91%E4%B8%AD%E6%AF%8FX%E7%A7%92%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BC%A9%E7%95%A5%E5%9B%BE
+exports.createThumbnails = (video) => {
+	const outputDIR = `${process.cwd()}/${OUTPUT_DIR}/${video.data.videoId}`;
+	const videoPath = task.data.videoPath;
+	return new Promise((resolve, reject) => {
+		logger.info('#### [FFMPEG-THUMBNAILS] Start create thumbnails for video.');
+		const startTime = Date.now();
+		exec(`ffmpeg -i ${video} -vf fps=1/30 ${outputDIR}/imgs/img%03d.jpg`, (error, stdout, stderr) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			const endTime = Date.now();
+			logger.info('#### [FFMPEG-THUMBNAILS] Create thumbnails for video is Successfull completed.');
+			resolve({
+				encode_duration: (endTime - startTime) / 1000,
+				endTime
+			});
+		});
+	});
+};

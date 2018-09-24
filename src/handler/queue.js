@@ -110,7 +110,7 @@ Object.defineProperty(exports, '__esModule', {
 	}
 });
 
-(exports.onRemoveJob = async (req, res) => {
+(exports.onReloadJob = async (req, res) => {
 	const jobId = req.params;
 	video_queue.removeJob(jobId, (err) => {
 		if (err) {
