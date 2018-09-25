@@ -41,6 +41,7 @@ const rsync = new Rsync()
 	.archive()
 	.compress()
 	.progress()
+	.delete()
 	.exclude([ '.git', '.DS_Store' ])
 	.source(path.resolve(process.cwd(), 'output'))
 	.destination('rsync@localhost:/rsync');
@@ -68,6 +69,7 @@ router.post('/queue/reload/:jobid', queueAPI.onReloadJob);
 
 router.delete('/upload/:uuid', uploaderAPI.onDeleteFile);
 router.delete('/video/:videoid', videoAPI.onDeleteVideo);
+router.delete('/queue/:jobid', queueAPI.onRemoveJob);
 
 router.get('/queue/overview', queueAPI.onJobOverview);
 router.get('/queue/all/:jobstatus/:size', queueAPI.onGetJobs);

@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('path');
-const { createJob, video_queue } = require('../service/queue');
+const { createJob, reloadJob, video_queue } = require('../service/queue');
 
 // Babel Compiler
 // -------------------------------------------------
@@ -10,7 +10,7 @@ Object.defineProperty(exports, '__esModule', {
 });
 // -------------------------------------------------
 
-(exports.onCreateJob = async (req, res) => {
+exports.onCreateJob = async (req, res) => {
 	const { type, cover_name, cover_uuid, mov_name, mov_uuid, video_id } = req.body;
 	const videoPath = path.resolve(process.cwd(), 'tmp', `tmp_video-${mov_uuid}`, mov_name);
 	const coverPath = path.resolve(process.cwd(), 'tmp', `tmp_video-${cover_uuid}`, cover_name);
@@ -18,30 +18,36 @@ Object.defineProperty(exports, '__esModule', {
 		const created = Date.now();
 		switch (type) {
 			case 'download':
-				createJob({
-					cover_name,
-					cover_uuid,
-					mov_name,
-					mov_uuid,
-					videoPath,
-					coverPath,
-					videoID: video_id,
-					jobType: 'DWN',
-					created
-				}, onSuccess);
+				createJob(
+					{
+						cover_name,
+						cover_uuid,
+						mov_name,
+						mov_uuid,
+						videoPath,
+						coverPath,
+						videoID: video_id,
+						jobType: 'DWN',
+						created
+					},
+					onSuccess
+				);
 				break;
 			case 'hls':
-				createJob({
-					cover_name,
-					cover_uuid,
-					mov_name,
-					mov_uuid,
-					videoPath,
-					coverPath,
-					videoID: video_id,
-					jobType: 'HLS',
-					created
-				}, onSuccess);
+				createJob(
+					{
+						cover_name,
+						cover_uuid,
+						mov_name,
+						mov_uuid,
+						videoPath,
+						coverPath,
+						videoID: video_id,
+						jobType: 'HLS',
+						created
+					},
+					onSuccess
+				);
 				break;
 			default:
 				break;
@@ -59,9 +65,9 @@ Object.defineProperty(exports, '__esModule', {
 			error: e
 		});
 	}
-});
+};
 
-(exports.onQueryJobStats = async (req, res) => {
+exports.onQueryJobStats = async (req, res) => {
 	const { jobid } = req.params;
 
 	if (jobid) {
@@ -80,9 +86,9 @@ Object.defineProperty(exports, '__esModule', {
 			});
 		});
 	}
-});
+};
 
-(exports.onGetJobs = async (req, res) => {
+exports.onGetJobs = async (req, res) => {
 	/**
  * Query all job by its state.
  * * All job types: "waiting, failed, succeeded, ative, or delayed"
@@ -108,26 +114,44 @@ Object.defineProperty(exports, '__esModule', {
 			error: err
 		});
 	}
-});
+};
 
-(exports.onReloadJob = async (req, res) => {
-	const jobId = req.params;
-	video_queue.removeJob(jobId, (err) => {
+exports.onRemoveJob = async (req, res) => {
+	const { jobid } = req.params;
+	video_queue.removeJob(jobid, (err) => {
 		if (err) {
-			logger.error('#### [Bee-Queue]: Remove job error %s ', err);
+			logger.err(`#### [Bee-Queue] Remove job error: ${err}`);
+			res.status(500).send({
+				success: false,
+				error: err
+			});
+		}
+		res.status(200).send({
+			success: true
+		});
+	});
+};
+
+exports.onReloadJob = async (req, res) => {
+	const { jobid } = req.params;
+	reloadJob(jobid, (hasError, ret) => {
+		if (!hasError) {
+			logger.error('#### [Bee-Queue]: Remove job error %s ', ret);
 			res.status(500).send({
 				status: false,
-				error: err
+				error: ret
 			});
 		}
 		res.send({
 			status: true,
-			data: 'job removed successfull.'
+			data: {
+				job: ret.id
+			}
 		});
 	});
-});
+};
 
-(exports.onJobOverview = async (req, res) => {
+exports.onJobOverview = async (req, res) => {
 	try {
 		const counts = await video_queue.checkHealth();
 		res.send({
@@ -140,4 +164,4 @@ Object.defineProperty(exports, '__esModule', {
 			error: error
 		});
 	}
-});
+};

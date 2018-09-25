@@ -215,12 +215,56 @@ exports.createJob = (jobData, callback) => {
 			job_type: jobData.jobType,
 			job_created: jobData.created
 		})
+		.setId(video_dbid)
 		.retries(1)
 		.backoff('fixed', 60 * 1000)
 		.save()
 		.then(() => {
-			callback.apply(this, [jobData]);
+			callback.apply(this, [ jobData ]);
 		});
 
 	return job;
+};
+
+const getJobStatsById = (jobId, callback) => {
+	video_queue.getJob(jobId, (err, job) => {
+		if (err) {
+			logger.err(`#### [Bee-Queue] Get job stats found error: ${err}`);
+			callback.apply(this, [ false, err ]);
+		}
+		callback.apply(this, [ true, job ]);
+	});
+};
+
+exports.reloadJob = (jobId, callback) => {
+	getJobStatsById(jobId, (hasError, ret) => {
+		if (hasError) {
+			const job = ret;
+			queue.removeJob(jobId, (err) => {
+				if (err) {
+					logger.error('#### [Bee-Queue]: Remove job error %s ', err);
+					callback.apply(this, [ false, err ]);
+				}
+				queue
+					.createJob({
+						videoPath: job.data.videoPath,
+						coverPath: job.data.coverPath,
+						cover_name: job.data.cover_name,
+						cover_uuid: job.data.cover_uuid,
+						mov_name: job.data.mov_name,
+						mov_uuid: job.data.mov_uuid,
+						video_dbid: job.data.video_dbid,
+						job_type: job.data.jobType,
+						job_created: job.data.created
+					})
+					.setId(job.data.video_dbid)
+					.retries(1)
+					.backoff('fixed', 60 * 1000)
+					.save()
+					.then(() => {
+						callback.apply(this, [ true, jobData ]);
+					});
+			});
+		}
+	});
 };

@@ -4,7 +4,6 @@ const fetch = require('node-fetch');
 const { execute, makePromise } = require('apollo-link');
 const { HttpLink } = require('apollo-link-http');
 const gql = require('graphql-tag');
-const logger = require('../utils/logger');
 const del = require('del');
 
 const CONFIG = require('../utils/config');
@@ -96,27 +95,36 @@ exports.onDeleteVideo = async (req, res) => {
 	// delete tmp diretory
 	// delete output diretory
 	const files = [
-		`${process.cwd()}/tmp/tmp_video-${mov_uuid}/**/*`,
-		`${process.cwd()}/tmp/tmp_video-${cover_uuid}/**/*`,
-		`${process.cwd()}/output/${id}/**/*`
+		`${process.cwd()}/tmp/tmp_video-${mov_uuid}/**`,
+		`${process.cwd()}/tmp/tmp_video-${cover_uuid}/**`,
+		`${process.cwd()}/output/${id}/**`
 	];
 	// delete database
 	operation.query = REMOVE_VIDEO;
 	operation.variables = { id };
 
-	del(files, { dryRun: true }).then(paths => {
-		logger.info('Files and folders that would be deleted:\n', paths.join('\n'));
-		makePromise(execute(link, operation)).then(() => {
-			res.status(200).send({
-				success: false,
-				error
-			})
-		}).catch((error) => {
-			res.status(500).send({
-				success: false,
-				error
-			});
+	logger.info(`#### [DEL] Start delete files of ${mov_uuid}.`);
+
+	del(files).then((paths) => {
+		logger.info(`#### [DEL] Delete files of ${mov_uuid} successfully.`);
+		global.rsync.execute((error, code, cmd) => {
+			if (error) {
+				logger.error(`#### [RSYNC] Error when execute: ${error}`);
+			}
+			logger.info(`#### [RSYNC] Sync successfully done.`);
+			makePromise(execute(link, operation))
+				.then(() => {
+					res.status(200).send({
+						success: true
+					});
+				})
+				.catch((error) => {
+					console.log(error);
+					res.status(500).send({
+						success: false,
+						error
+					});
+				});
 		});
 	});
-
 };
