@@ -236,13 +236,11 @@ exports.createVODByHLS = (task) => {
 			startTime = Date.now();
 			if (error) {
 				reject(error);
-				return;
 			}
 			log('#### [FFMPEG-HLS] Create directory complete.\n');
 			mkdirp(outputDIR, async function(err) {
 				if (err) {
 					reject(error);
-					return;
 				}
 				await cpFile(task.data.coverPath, `${outputDIR}/cover.png`);
 				logger.info('#### [FFMPEG-HLS] Copy image file complete.\n');
@@ -252,7 +250,6 @@ exports.createVODByHLS = (task) => {
 					(error, stdout, stderr) => {
 						if (error) {
 							reject(error);
-							return;
 						}
 						const endTime = Date.now();
 						logger.info('#### [FFMPEG-HLS] HLS Vod playlist is successfully completed.');

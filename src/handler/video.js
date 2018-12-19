@@ -93,6 +93,11 @@ const getVideos = async ({videoParams, response}) => {
 exports.onGetVideos = async (req, res) => {
   const videos = await getVideos({response: res, videoParams: undefined});
 
+  // Disable caching for content files
+  res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.header("Pragma", "no-cache");
+  res.header("Expires", 0);
+
   res.send({
     success: true,
     videos: videos.map(video => ({
