@@ -75,6 +75,7 @@ router.get('/queue/overview', queueAPI.onJobOverview);
 router.get('/queue/all/:jobstatus/:size', queueAPI.onGetJobs);
 router.get('/queue/stats/:jobid', queueAPI.onQueryJobStats);
 router.get('/video/play/:uuid', videoAPI.onGetVideo);
+router.get('/videos', videoAPI.onGetVideos);
 
 // REGISTER OUR ROUTES -------------------------------
 // all of our routes will be prefixed with /api

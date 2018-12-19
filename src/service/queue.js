@@ -181,7 +181,6 @@ function handleSucc(job, done, ret) {
 					// we're done
 					if (error) {
 						console.error(`#### [RSYNC] Error when execute: ${error}`);
-						process.exit();
 					}
 					logger.info(`#### [RSYNC] Sync successfully done.`);
 					done(null, ret);
@@ -215,7 +214,7 @@ exports.createJob = (jobData, callback) => {
 			job_type: jobData.jobType,
 			job_created: jobData.created
 		})
-		.setId(video_dbid)
+		.setId(jobData.videoID)
 		.retries(1)
 		.backoff('fixed', 60 * 1000)
 		.save()

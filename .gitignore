@@ -34,6 +34,7 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
+.idea
 
 # TypeScript v1 declaration files
 typings/
@@ -67,3 +68,4 @@ typings/
 *.png
 *.jpg
 manifest.xml
+.idea/
