@@ -1,30 +1,26 @@
-"use strict";
+import * as fs from "fs";
+import * as path from "path";
+import mkdirp from "mkdirp";
+import rimraf from "rimraf";
+import multiparty from "multiparty";
 
-// Babel Compiler
-// -------------------------------------------------
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-// -------------------------------------------------
-const fs = require("fs");
-const path = require("path");
-const mkdirp = require("mkdirp");
-const rimraf = require("rimraf");
-const multiparty = require("multiparty");
+import { logger } from "../utils/logger";
 
 const fileInputName = process.env.FILE_INPUT_NAME || "qqfile";
 const maxFileSize = process.env.MAX_FILE_SIZE || 0; // in bytes, 0 for unlimited
-const uploadedFilesPath = process.env.UPLOADED_FILES_DIR || path.resolve(process.cwd(), "tmp", "tmp_video-");
+const uploadedFilesPath =
+  process.env.UPLOADED_FILES_DIR ||
+  path.resolve(process.cwd(), "tmp", "tmp_video-");
 const chunkDirName = "chunks";
 
-const onUpload = (exports.onUpload = (req, res) => {
+export const onUpload = (req, res) => {
   const form = new multiparty.Form();
   form.parse(req, (err, fields, files) => {
     if (err) {
-      console.err(err.message);
-      console.err(err.stack);
+      logger.error(err.message);
+      logger.error(err.stack);
     } else {
-      var partIndex = fields.qqpartindex;
+      const partIndex = fields.qqpartindex;
       // text/plain is required to ensure support for IE9 and older
       res.set("Content-Type", "text/plain");
       if (partIndex == null) {
@@ -34,9 +30,9 @@ const onUpload = (exports.onUpload = (req, res) => {
       }
     }
   });
-});
+};
 
-const onDeleteFile = (exports.onDeleteFile = (req, res) => {
+export const onDeleteFile = (req, res) => {
   const uuid = req.params.uuid;
   const dirToDelete = uploadedFilesPath + uuid;
 
@@ -48,13 +44,15 @@ const onDeleteFile = (exports.onDeleteFile = (req, res) => {
 
     res.send();
   });
-});
+};
 
 // NORMAL UPLOAD.
 const onSimpleUpload = (fields, file, res) => {
   const uuid = fields.qquuid;
   const responseData = {
-    success: false
+    success: false,
+    data: {},
+    error: ""
   };
 
   file.name = fields.qqfilename;
@@ -65,7 +63,9 @@ const onSimpleUpload = (fields, file, res) => {
       uuid,
       () => {
         responseData.success = true;
-        responseData.uuid = uuid;
+        responseData.data = {
+          uuid
+        };
         res.send(responseData);
       },
       () => {
@@ -85,7 +85,9 @@ const onChunkedUpload = (fields, file, res) => {
   const index = fields.qqpartindex;
   const totalParts = parseInt(fields.qqtotalparts);
   const responseData = {
-    success: false
+    success: false,
+    data: {},
+    error: ""
   };
 
   file.name = fields.qqfilename;
@@ -99,7 +101,7 @@ const onChunkedUpload = (fields, file, res) => {
       () => {
         if (index < totalParts - 1) {
           responseData.success = true;
-          responseData.uuid= uuid;
+          responseData.data = { uuid };
           res.send(responseData);
         } else {
           combineChunks(
@@ -107,7 +109,7 @@ const onChunkedUpload = (fields, file, res) => {
             uuid,
             () => {
               responseData.success = true;
-              responseData.uuid= uuid;
+              responseData.data = { uuid };
               res.send(responseData);
             },
             () => {
@@ -141,7 +143,7 @@ const moveFile = (
   failure
 ) => {
   mkdirp(destinationDir, function(error) {
-    var sourceStream, destStream;
+    let sourceStream, destStream;
 
     if (error) {
       console.error(
