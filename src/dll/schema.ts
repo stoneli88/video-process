@@ -2,29 +2,40 @@ import { gql } from "apollo-server-express";
 
 const typeDefs = gql`
   type Query {
-#    allVideos(pageSize: Int, after: String): AllVideos!
-    allUsers(pageSize: Int, after: String): AllUsers!
+    users(cursor: String, limit: Int): UserFeed
+    videos(filter: VideoInput, cursor: String, limit: Int): VideoFeed
   }
   type Mutation {
-    addVideo(
-      mov_uuid: String!
-      cover_uuid: String!
-      mov_name: String!
-      cover_name: String!
-      name: String
-      description: String
-      category: String
-      keyword: String
-    ): Video!
+    addVideo(video: VideoInput): Video!
   }
-  type AllVideos {
+  type User {
+    createdAt: String!
+    updatedAt: String
+    email: String!
+    password: String!
+    name: String!
+    birthday: String
+    videos: [Video]
+    userId: String!
+    id: ID!
+  }
+  input VideoInput {
+    userId: ID
+    mov_uuid: String
+    cover_uuid: String
+    mov_name: String
+    cover_name: String
+    name: String
+    description: String
+    category: String
+    keyword: String
+  }
+  type VideoFeed {
     cursor: String!
-    hasMore: Boolean!
     videos: [Video]!
   }
-  type AllUsers {
+  type UserFeed {
     cursor: String!
-    hasMore: Boolean!
     users: [User]!
   }
   type Category {
@@ -33,26 +44,9 @@ const typeDefs = gql`
     cover_url: String
     id: ID!
   }
-  type User {
-    created: String!
-    edited: String
-    email: String!
-    password: String!
-    name: String!
-    birthYear: String
-    videos: [Video]
-    id: ID!
-  }
-  type VideoUploadedDetails {
-    mov_uuid: String!
-    cover_uuid: String!
-    mov_name: String!
-    cover_name: String!
-    mov_url: String!
-    cover_url: String!
-  }
   type Video {
     id: ID!
+    videoId: String!
     name: String!
     description: String!
     channel: String
@@ -60,17 +54,16 @@ const typeDefs = gql`
     framerate: String
     hd: Boolean
     keyword: String
-    viewnumber: String
+    watched: String
     likes: String
     dislikes: String
-    category: Category!
+    category: Category
     owner: User!
     isEncoded: String
-    uploadDetails: VideoUploadedDetails!
     hlsUrl: String
     downloadUrl: String
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    createdAt: String!
+    updatedAt: String!
   }
 `;
 

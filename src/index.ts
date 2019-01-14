@@ -12,6 +12,9 @@ import { logger } from "./utils/logger";
 import typeDefs from "./dll/schema";
 import resolvers from "./dll/resolvers";
 
+// sequelize
+import { sequelize } from "./dll/connectors";
+
 import { SERVER_PORT } from "./utils/constants";
 
 // Apollo Setup
@@ -56,8 +59,19 @@ app.use("/api/v1", router);
 
 // START THE SERVER
 // =============================================================================
-app.listen({ port }, () =>
-  logger.info(
-    `🚀 Server ready at http://localhost:${port}${gqlServer.graphqlPath}`
-  )
-);
+(async () => {
+  await sequelize.sync({force: true});
+  const server = app.listen({ port }, () =>
+    logger.info(
+      `🚀 Server ready at http://localhost:${port}${gqlServer.graphqlPath}`
+    )
+  );
+  process.on('SIGTERM', shutDown);
+  process.on('SIGINT', shutDown);
+  function shutDown() {
+    server.close(() => {
+      logger.info('Closed out remaining connections');
+      process.exit(0);
+    });
+  }
+})();

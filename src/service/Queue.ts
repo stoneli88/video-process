@@ -54,7 +54,44 @@ export default class Queue {
     removeOnFailure: false,
     redisScanCount: 100
   };
+
   private queueInstance: BeeQueue;
+
+  constructor(name: string, options: BeeQueue.QueueSettings) {
+    this.queueInstance = new BeeQueue(name, options);
+    this.bindEvtToQueue();
+  }
+
+  public createJob(jobDetail: IVideoJob): Promise<BeeQueue.Job> {
+    logger.info(`#### [BeeQueue]: creating job with type ${jobDetail.type}`);
+    return this.queueInstance
+      .createJob(jobDetail)
+      .setId(jobDetail.videoId)
+      .retries(JOB_MAX_RETRY)
+      .timeout(10000)
+      .backoff("fixed", 6 * 1000)
+      .save();
+  }
+
+  public getJob(jobId: string): Promise<BeeQueue.Job> {
+    logger.info(`#### [BeeQueue]: get job with job id is: ${jobId}`);
+    return this.queueInstance.getJob(jobId);
+  }
+
+  public getJobs(type: string, page: BeeQueue.Page): Promise<BeeQueue.Job[]> {
+    logger.info(`#### [BeeQueue]: get all jobs with job type is: ${type}`);
+    return this.queueInstance.getJobs(type, page);
+  }
+
+  public process():void {
+    this.queueInstance.process(QUEUE_CONCURRENCY, (job: BeeQueue.Job, done: BeeQueue.DoneCallback<any>) => {
+      createHLS(job).then((ret: any) => {
+        done(null, ret);
+      }).catch((e) => {
+        logger.error(`#### [BeeQueue]: Create HLS found error: ${e}`);
+      })
+    });
+  }
 
   private bindEvtToQueue() {
     this.queueInstance.on("job succeeded", (jobId: string, result: any) => {
@@ -68,42 +105,6 @@ export default class Queue {
     });
     this.queueInstance.on('job progress', (jobId, progress) => {
       console.log(`Job ${jobId} reported progress: ${progress}%`);
-    });
-  }
-
-  constructor(name: string, options: BeeQueue.QueueSettings) {
-    this.queueInstance = new BeeQueue(name, options);
-    this.bindEvtToQueue();
-  }
-
-  public async createJob(jobDetail: IVideoJob): Promise<BeeQueue.Job> {
-    logger.info(`#### [BeeQueue]: creating job with type ${jobDetail.type}`);
-    return await this.queueInstance
-      .createJob(jobDetail)
-      .setId(jobDetail.videoId)
-      .retries(JOB_MAX_RETRY)
-      .timeout(10000)
-      .backoff("fixed", 6 * 1000)
-      .save();
-  }
-
-  public async getJob(jobId: string): Promise<BeeQueue.Job> {
-    logger.info(`#### [BeeQueue]: get job with job id is: ${jobId}`);
-    return await this.queueInstance.getJob(jobId);
-  }
-
-  public async getJobs(type: string, page: BeeQueue.Page): Promise<BeeQueue.Job[]> {
-    logger.info(`#### [BeeQueue]: get all jobs with job type is: ${type}`);
-    return await this.queueInstance.getJobs(type, page);
-  }
-
-  public process():void {
-    this.queueInstance.process(QUEUE_CONCURRENCY, (job: BeeQueue.Job, done: BeeQueue.DoneCallback<any>) => {
-      createHLS(job).then((ret: any) => {
-        done(null, ret);
-      }).catch((e) => {
-        logger.error(`#### [BeeQueue]: Create HLS found error: ${e}`);
-      })
     });
   }
 }
