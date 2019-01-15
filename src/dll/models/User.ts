@@ -1,8 +1,34 @@
-import { Column, Model, Table, Unique, PrimaryKey, CreatedAt, UpdatedAt, HasMany } from "sequelize-typescript";
+import {
+  Column,
+  Model,
+  Table,
+  Unique,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  HasMany,
+  Scopes
+} from "sequelize-typescript";
 import Video from "./Video";
 
+@Scopes({
+  videos: {
+    include: [
+      {
+        model: () => Video,
+        required: true
+      }
+    ]
+  }
+})
 @Table
 class User extends Model<User> {
+  public static scope(...args: any[]): typeof User {
+    args[0] = args[0] || "defaultScope";
+    // @ts-ignore
+    return super.scope.call(this, ...args);
+  }
+
   @PrimaryKey
   @Column
   public userId!: string;
@@ -20,7 +46,7 @@ class User extends Model<User> {
   @Column
   public password!: string;
 
-  @HasMany(() => Video, "videoId")
+  @HasMany(() => Video)
   public Videos?: Video[];
 
   @CreatedAt
@@ -30,7 +56,6 @@ class User extends Model<User> {
   @UpdatedAt
   @Column
   public updatedAt!: Date;
-
 }
 
 export default User;

@@ -5,7 +5,6 @@
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    // 一组严苛的编译选项
     "noImplicitAny": false,
     "strictNullChecks": true,
     "strict": true,

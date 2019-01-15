@@ -3,10 +3,11 @@ import { Sequelize } from "sequelize-typescript";
 import User from "./models/User";
 import Video from "./models/Video";
 import { logger } from "../utils/logger";
+import * as path from "path";
 
 // 初始化SQLLite.
 const sqliteInstance: sqlite3 = verbose();
-const database: Database = new sqliteInstance.Database(":memory:", err => {
+const database: Database = new sqliteInstance.Database(path.join(process.cwd(), "tmp", "sqlLiteData.db"), err => {
   if (err) {
     logger.error(err.message);
   }
@@ -19,7 +20,7 @@ const sequelize = new Sequelize({
   dialect: "sqlite",
   username: "root",
   password: "",
-  storage: ":memory:",
+  storage: path.join(process.cwd(), "tmp", "sqlLiteData.db"),
   modelPaths: [__dirname + '/models']
 });
 

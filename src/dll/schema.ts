@@ -17,10 +17,9 @@ const typeDefs = gql`
     birthday: String
     videos: [Video]
     userId: String!
-    id: ID!
   }
   input VideoInput {
-    userId: ID
+    userId: String
     mov_uuid: String
     cover_uuid: String
     mov_name: String
@@ -45,7 +44,6 @@ const typeDefs = gql`
     id: ID!
   }
   type Video {
-    id: ID!
     videoId: String!
     name: String!
     description: String!

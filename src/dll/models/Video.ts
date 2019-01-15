@@ -6,10 +6,21 @@ import {
   ForeignKey,
   PrimaryKey,
   CreatedAt,
-  UpdatedAt
+  UpdatedAt,
+  Scopes
 } from "sequelize-typescript";
 import User from "./User";
 
+@Scopes({
+  uploader: {
+    include: [
+      {
+        model: () => User,
+        through: { attributes: [] }
+      }
+    ]
+  }
+})
 @Table
 class Video extends Model<Video> {
   @PrimaryKey
@@ -50,8 +61,8 @@ class Video extends Model<Video> {
   @Column
   public userId!: string;
 
-  @BelongsTo(() => User, "userId")
-  public uploader!: User;
+  @BelongsTo(() => User)
+  public owner!: User;
 
   @Column
   public hlsUrl!: string;
