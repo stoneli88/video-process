@@ -41,7 +41,7 @@ export default {
         if (email && !name && !userId) { where = { email: { [Op.like]: [`%${email}%`] } }; }
         if (name && email && userId) { where = { [Op.and]: [{ name }, { email }, { userId }] }; }
       }
-      const result = await User.scope("videos").findAndCountAll({ where });
+      const result = await User.scope("videos").findAndCountAll<User>({ where });
       const { rows: users, count } = result;
       if (count > limit) {
         if (!cursor) {
@@ -65,14 +65,14 @@ export default {
       let where = {};
       const condition = [{}];
       if (filter) {
-        const { name, description, keyword, uploader } = filter;
-        if (name) { condition.push({ email: { [Op.like]: [`%${description}`] } }); }
+        const { name, description, keyword, userId } = filter;
+        if (name) { condition.push({ name: { [Op.like]: [`%${name}`] } }); }
         if (description) { condition.push({ description: { [Op.like]: [`%${description}`] } }); }
         if (keyword) { condition.push({ keyword: { [Op.like]: [`%${keyword}`] } }); }
-        if (uploader) { condition.push({ uploader: { [Op.like]: [`%${uploader}`] } }); }
+        if (userId) { condition.push({ userId: { [Op.like]: [`%${userId}`] } }); }
         where = {[Op.or]: condition};
       }
-      const result = await Video.scope("allWithUploader").findAndCountAll({ where });
+      const result = await Video.scope("allWithUploader").findAndCountAll<Video>({ where });
       const { rows: videos, count } = result;
       if (count > limit) {
         if (!cursor) {

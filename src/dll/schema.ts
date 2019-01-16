@@ -29,7 +29,6 @@ const typeDefs = gql`
     cover_uuid: String
     mov_name: String
     cover_name: String
-    uploader: String
     name: String
     description: String
     category: String

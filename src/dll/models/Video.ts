@@ -24,7 +24,7 @@ import User from "./User";
 })
 @Table
 class Video extends Model<Video> {
-  public static scope(...args: any[]): typeof User {
+  public static scope(...args: any[]): typeof Video {
     args[0] = args[0] || "defaultScope";
     // @ts-ignore
     return super.scope.call(this, ...args);
