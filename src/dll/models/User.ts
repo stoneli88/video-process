@@ -16,7 +16,7 @@ import Video from "./Video";
     include: [
       {
         model: () => Video,
-        required: true
+        required: false
       }
     ]
   }
@@ -47,7 +47,7 @@ class User extends Model<User> {
   public password!: string;
 
   @HasMany(() => Video)
-  public Videos?: Video[];
+  public videos?: Video[];
 
   @CreatedAt
   @Column

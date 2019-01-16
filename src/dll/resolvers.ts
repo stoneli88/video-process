@@ -1,7 +1,15 @@
 import { User, Video } from "./connectors";
+import { Sequelize } from "sequelize-typescript";
 // Create Fake Data only for test.
 // comments below code before you publish the project.
-import { email, password, seed, unix_time, username, uuid } from "casual";
+import {
+  email as uEmail,
+  password,
+  seed,
+  unix_time,
+  username,
+  uuid
+} from "casual";
 import { times } from "lodash";
 
 seed(123);
@@ -11,7 +19,7 @@ seed(123);
       User.create({
         userId: uuid,
         name: username,
-        email,
+        email: uEmail,
         password,
         birthday: unix_time
       });
@@ -20,10 +28,20 @@ seed(123);
 })();
 // ----------------------------------------
 
+const Op = Sequelize.Op;
+
 export default {
   Query: {
-    users: async (context, { cursor, limit }) => {
-      const result = await User.scope("videos").findAndCountAll();
+    users: async (context, { filter, cursor, limit }) => {
+      let where = {};
+      if (filter) {
+        const { userId, name, email } = filter;
+        if (userId && !email && !name) { where = { userId: { [Op.like]: [`%${userId}%`] } }; }
+        if (name && !email && !userId) { where = { name: { [Op.like]: [`%${name}%`] } }; }
+        if (email && !name && !userId) { where = { email: { [Op.like]: [`%${email}%`] } }; }
+        if (name && email && userId) { where = { [Op.and]: [{ name }, { email }, { userId }] }; }
+      }
+      const result = await User.scope("videos").findAndCountAll({ where });
       const { rows: users, count } = result;
       if (count > limit) {
         if (!cursor) {
@@ -44,7 +62,17 @@ export default {
       };
     },
     videos: async (context, { filter, cursor, limit }) => {
-      const result = await Video.findAndCountAll();
+      let where = {};
+      const condition = [{}];
+      if (filter) {
+        const { name, description, keyword, uploader } = filter;
+        if (name) { condition.push({ email: { [Op.like]: [`%${description}`] } }); }
+        if (description) { condition.push({ description: { [Op.like]: [`%${description}`] } }); }
+        if (keyword) { condition.push({ keyword: { [Op.like]: [`%${keyword}`] } }); }
+        if (uploader) { condition.push({ uploader: { [Op.like]: [`%${uploader}`] } }); }
+        where = {[Op.or]: condition};
+      }
+      const result = await Video.scope("allWithUploader").findAndCountAll({ where });
       const { rows: videos, count } = result;
       if (count > limit) {
         if (!cursor) {

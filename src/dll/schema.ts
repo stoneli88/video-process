@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 const typeDefs = gql`
   type Query {
-    users(cursor: String, limit: Int): UserFeed
+    users(filter: UserInput, cursor: String, limit: Int): UserFeed
     videos(filter: VideoInput, cursor: String, limit: Int): VideoFeed
   }
   type Mutation {
@@ -18,12 +18,18 @@ const typeDefs = gql`
     videos: [Video]
     userId: String!
   }
+  input UserInput {
+    userId: String
+    name: String
+    email: String
+  }
   input VideoInput {
     userId: String
     mov_uuid: String
     cover_uuid: String
     mov_name: String
     cover_name: String
+    uploader: String
     name: String
     description: String
     category: String

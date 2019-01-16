@@ -12,17 +12,24 @@ import {
 import User from "./User";
 
 @Scopes({
-  uploader: {
+  allWithUploader: {
     include: [
       {
         model: () => User,
-        through: { attributes: [] }
+        required: false,
+        attributes: ["userId", "name"]
       }
     ]
   }
 })
 @Table
 class Video extends Model<Video> {
+  public static scope(...args: any[]): typeof User {
+    args[0] = args[0] || "defaultScope";
+    // @ts-ignore
+    return super.scope.call(this, ...args);
+  }
+
   @PrimaryKey
   @Column
   public videoId!: string;
