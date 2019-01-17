@@ -10,19 +10,15 @@ import {
   username,
   uuid
 } from "casual";
-import { times } from "lodash";
-
-seed(123);
+seed(1);
 (() => {
   setTimeout(() => {
-    times(10, () => {
-      User.create({
-        userId: uuid,
-        name: username,
-        email: uEmail,
-        password,
-        birthday: unix_time
-      });
+    User.create({
+      userId: uuid,
+      name: username,
+      email: uEmail,
+      password,
+      birthday: unix_time
     });
   }, 2000);
 })();

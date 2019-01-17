@@ -10,7 +10,7 @@ import {
   QUEUE_CONCURRENCY
 } from "../utils/constants";
 
-interface IVideoJob {
+export interface IVideoJob {
   type: string;
   videoId: string;
   videoPath: string;
@@ -27,8 +27,8 @@ export default class Queue {
     name: string,
     options?: BeeQueue.QueueSettings
   ): Queue {
-    if (!Queue.instance) {
-      Queue.instance = new Queue(name, options ? options : this.defaultOpts);
+    if (!this.instance) {
+      this.instance = new Queue(name, options ? options : this.defaultOpts);
     }
     return this.instance;
   }
@@ -83,14 +83,19 @@ export default class Queue {
     return this.queueInstance.getJobs(type, page);
   }
 
-  public process():void {
-    this.queueInstance.process(QUEUE_CONCURRENCY, (job: BeeQueue.Job, done: BeeQueue.DoneCallback<any>) => {
-      createHLS(job).then((ret: any) => {
-        done(null, ret);
-      }).catch((e) => {
-        logger.error(`#### [BeeQueue]: Create HLS found error: ${e}`);
-      })
-    });
+  public process(): void {
+    this.queueInstance.process(
+      QUEUE_CONCURRENCY,
+      (job: BeeQueue.Job, done: BeeQueue.DoneCallback<any>) => {
+        createHLS(job)
+          .then((ret: any) => {
+            done(null, ret);
+          })
+          .catch(e => {
+            logger.error(`#### [BeeQueue]: Create HLS found error: ${e}`);
+          });
+      }
+    );
   }
 
   private bindEvtToQueue() {
@@ -98,12 +103,18 @@ export default class Queue {
       logger.error(`#### [BeeQueue]: Job ${jobId} failed with error ${result}`);
     });
     this.queueInstance.on("job retrying", (jobId: string, err: Error) => {
-      logger.error(`#### [BeeQueue]: Job ${jobId} failed with error ${err.message} but is being retried!`);
+      logger.error(
+        `#### [BeeQueue]: Job ${jobId} failed with error ${
+          err.message
+        } but is being retried!`
+      );
     });
     this.queueInstance.on("job failed", (jobId: string, err: Error) => {
-      logger.error(`#### [BeeQueue]: Job ${jobId} failed with error ${err.message}`);
+      logger.error(
+        `#### [BeeQueue]: Job ${jobId} failed with error ${err.message}`
+      );
     });
-    this.queueInstance.on('job progress', (jobId, progress) => {
+    this.queueInstance.on("job progress", (jobId, progress) => {
       console.log(`Job ${jobId} reported progress: ${progress}%`);
     });
   }
