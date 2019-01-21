@@ -10,6 +10,7 @@ import {
   Scopes
 } from "sequelize-typescript";
 import User from "./User";
+import Category from "./Category";
 
 @Scopes({
   allWithUploader: {
@@ -70,6 +71,13 @@ class Video extends Model<Video> {
 
   @BelongsTo(() => User)
   public owner!: User;
+
+  @ForeignKey(() => Category)
+  @Column
+  public categoryId!: string;
+
+  @BelongsTo(() => Category)
+  public category!: Category;
 
   @Column
   public hlsUrl!: string;

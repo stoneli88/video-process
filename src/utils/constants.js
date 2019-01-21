@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.REDIS_SERVER = '127.0.0.1';
+exports.REDIS_SERVER_PORT = '6379';
+exports.REDIS_SERVER_PWD = '';
+exports.VIDEO_SERVER = "127.0.0.1:9080/output";
+exports.JWT_SECRET = " @._MaL2ttl4S3cr8t_.* ";
+exports.JOB_MAX_RETRY = 1;
+exports.QUEUE_CONCURRENCY = 1;
+exports.SERVER_PORT = 8080;

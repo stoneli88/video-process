@@ -2,6 +2,7 @@ import { verbose, sqlite3, Database } from "sqlite3";
 import { Sequelize } from "sequelize-typescript";
 import User from "./models/User";
 import Video from "./models/Video";
+import Category from "./models/Category";
 import { logger } from "../utils/logger";
 import * as path from "path";
 
@@ -11,7 +12,7 @@ const database: Database = new sqliteInstance.Database(path.join(process.cwd(), 
   if (err) {
     logger.error(err.message);
   }
-  logger.info("🚀 Connected to the in-memory SQlite database.");
+  logger.info("🚀 Connected to the SQlite database.");
 });
 
 // 初始化Sequelize.
@@ -33,4 +34,4 @@ process.on("SIGINT", () => {
   });
 });
 
-export { sequelize, User, Video };
+export { sequelize, User, Video, Category };

@@ -1,6 +1,7 @@
-import { gql } from "apollo-server-express";
-
-const typeDefs = gql`
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const apollo_server_express_1 = require("apollo-server-express");
+const typeDefs = apollo_server_express_1.gql `
   type Query {
     users(filter: UserInput, cursor: String, limit: Int): UserFeed
     videos(filter: VideoInput, cursor: String, limit: Int): VideoFeed
@@ -76,5 +77,4 @@ const typeDefs = gql`
     users: [User]!
   }
 `;
-
-export default typeDefs;
+exports.default = typeDefs;

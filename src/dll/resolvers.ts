@@ -1,28 +1,6 @@
-import { User, Video } from "./connectors";
+import { User, Video, Category } from "./connectors";
 import { Sequelize } from "sequelize-typescript";
-// Create Fake Data only for test.
-// comments below code before you publish the project.
-import {
-  email as uEmail,
-  password,
-  seed,
-  unix_time,
-  username,
-  uuid
-} from "casual";
-seed(1);
-(() => {
-  setTimeout(() => {
-    User.create({
-      userId: uuid,
-      name: username,
-      email: uEmail,
-      password,
-      birthday: unix_time
-    });
-  }, 2000);
-})();
-// ----------------------------------------
+import { uuid } from "casual";
 
 const Op = Sequelize.Op;
 
@@ -32,12 +10,22 @@ export default {
       let where = {};
       if (filter) {
         const { userId, name, email } = filter;
-        if (userId && !email && !name) { where = { userId: { [Op.like]: [`%${userId}%`] } }; }
-        if (name && !email && !userId) { where = { name: { [Op.like]: [`%${name}%`] } }; }
-        if (email && !name && !userId) { where = { email: { [Op.like]: [`%${email}%`] } }; }
-        if (name && email && userId) { where = { [Op.and]: [{ name }, { email }, { userId }] }; }
+        if (userId && !email && !name) {
+          where = { userId: { [Op.like]: [`%${userId}%`] } };
+        }
+        if (name && !email && !userId) {
+          where = { name: { [Op.like]: [`%${name}%`] } };
+        }
+        if (email && !name && !userId) {
+          where = { email: { [Op.like]: [`%${email}%`] } };
+        }
+        if (name && email && userId) {
+          where = { [Op.and]: [{ name }, { email }, { userId }] };
+        }
       }
-      const result = await User.scope("videos").findAndCountAll<User>({ where });
+      const result = await User.scope("videos").findAndCountAll<User>({
+        where
+      });
       const { rows: users, count } = result;
       if (count > limit) {
         if (!cursor) {
@@ -62,13 +50,23 @@ export default {
       const condition = [{}];
       if (filter) {
         const { name, description, keyword, userId } = filter;
-        if (name) { condition.push({ name: { [Op.like]: [`%${name}`] } }); }
-        if (description) { condition.push({ description: { [Op.like]: [`%${description}`] } }); }
-        if (keyword) { condition.push({ keyword: { [Op.like]: [`%${keyword}`] } }); }
-        if (userId) { condition.push({ userId: { [Op.like]: [`%${userId}`] } }); }
-        where = {[Op.or]: condition};
+        if (name) {
+          condition.push({ name: { [Op.like]: [`%${name}`] } });
+        }
+        if (description) {
+          condition.push({ description: { [Op.like]: [`%${description}`] } });
+        }
+        if (keyword) {
+          condition.push({ keyword: { [Op.like]: [`%${keyword}`] } });
+        }
+        if (userId) {
+          condition.push({ userId: { [Op.like]: [`%${userId}`] } });
+        }
+        where = { [Op.or]: condition };
       }
-      const result = await Video.scope("allWithUploader").findAndCountAll<Video>({ where });
+      const result = await Video.scope("allWithUploader").findAndCountAll<
+        Video
+      >({ where });
       const { rows: videos, count } = result;
       if (count > limit) {
         if (!cursor) {
@@ -91,17 +89,40 @@ export default {
     }
   },
   Mutation: {
+    addUser: (context, { user }) => {
+      const { userId, name, email, password } = user;
+      return User.create({
+        userId: userId ? userId : uuid,
+        name,
+        email,
+        password
+      });
+    },
+    addCategory: (context, { category }) => {
+      return Category.create({
+        name: category.name,
+        description: category.description,
+        categoryId: category.categoryId
+      });
+    },
     addVideo: async (context, { video }) => {
       const user = await User.findById(video.userId);
+      const category = await Category.findById(video.categoryId);
       if (!user) {
         throw new Error("User does not exists.");
       }
+      if (!category) {
+        throw new Error("Category does not exists.");
+      }
       const newVideo = await Video.create({
-        videoId: uuid,
-        name: video.name,
-        description: video.description
+        videoId: video.id ? video.id : "",
+        name: video.name ? video.name : "",
+        description: video.description ? video.description : "",
+        keyword: video.keyword ? video.keyword : ""
       });
-      return newVideo.$set("owner", user);
+      newVideo.$set("owner", user);
+      newVideo.$set("category", category);
+      return newVideo;
     }
   }
 };

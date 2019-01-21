@@ -1,6 +1,7 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import * as cors from "cors";
+import * as jwt from "jsonwebtoken";
 import { ApolloServer } from "apollo-server-express";
 
 // API
@@ -11,14 +12,40 @@ import { logger } from "./utils/logger";
 // gql
 import typeDefs from "./dll/schema";
 import resolvers from "./dll/resolvers";
+import { getToken, getUser } from "./utils/jwtUtils";
 
 // sequelize
 import { sequelize } from "./dll/connectors";
+import { SERVER_PORT, JWT_SECRET } from "./utils/constants";
 
-import { SERVER_PORT } from "./utils/constants";
+interface IJWTPayload {
+  payload: { userId: string; userPwd: string };
+}
 
 // Apollo Setup
-const gqlServer = new ApolloServer({ typeDefs, resolvers });
+const gqlServer = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: async ({ req }) => {
+    try {
+      const token = getToken(req.headers.authorization);
+      const { payload } = jwt.verify(token, JWT_SECRET) as IJWTPayload;
+
+      if (!token) {
+        throw new Error("You must be logged in");
+      }
+
+      if (payload.userId && payload.userPwd) {
+        return { user: await getUser(payload.userId, payload.userPwd) };
+      }
+
+      throw new Error("Payload is not valid.");
+    } catch (err) {
+      logger.error(err);
+      throw new Error("Server Error.");
+    }
+  }
+});
 
 // BASE SETUP
 // =============================================================================
@@ -60,17 +87,17 @@ app.use("/api/v1", router);
 // START THE SERVER
 // =============================================================================
 (async () => {
-  await sequelize.sync({force: true});
+  await sequelize.sync({ force: true });
   const server = app.listen({ port }, () =>
     logger.info(
-      `🚀 Server ready at http://localhost:${port}${gqlServer.graphqlPath}`
+      `🚀 GQL Server ready at http://localhost:${port}${gqlServer.graphqlPath}`
     )
   );
-  process.on('SIGTERM', shutDown);
-  process.on('SIGINT', shutDown);
+  process.on("SIGTERM", shutDown);
+  process.on("SIGINT", shutDown);
   function shutDown() {
     server.close(() => {
-      logger.info('Closed out remaining connections');
+      logger.info("Closed out remaining connections");
       process.exit(0);
     });
   }

@@ -13,12 +13,8 @@ import {
 export interface IVideoJob {
   type: string;
   videoId: string;
-  videoPath: string;
-  coverPath: string;
-  coverUploadId: string;
-  coverUploadName: string;
-  videoUploadName: string;
-  videoUploadUuid: string;
+  videoUuid: string;
+  coverUuid: string;
   created?: string;
 }
 
